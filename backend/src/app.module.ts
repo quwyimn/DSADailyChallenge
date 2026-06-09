@@ -11,6 +11,7 @@ import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
 import { StreakModule } from './modules/streak/streak.module';
 import { BadgeModule } from './modules/badges/badge.module';
+import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { HealthModule } from './health/health.module';
 
@@ -42,6 +43,7 @@ const REQUIRED_VARS = ['DATABASE_URL', 'JWT_SECRET'];
     SubmissionsModule,
     StreakModule,
     BadgeModule,
+    LeaderboardModule,
   ],
 })
 export class AppModule {}

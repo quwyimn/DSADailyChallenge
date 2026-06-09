@@ -90,10 +90,19 @@ export interface SubmissionResult {
 }
 
 export interface LeaderboardEntry {
+  rank: number;
   userId: number;
   name: string;
-  points: number;
-  rank: number;
+  className: string;
+  totalPoints: number;
+  isCurrentUser: boolean;
+}
+
+export interface LeaderboardResponse {
+  weekStart: string;
+  weekEnd: string;
+  currentUserRank: number | null;
+  entries: LeaderboardEntry[];
 }
 
 export interface UserProfile extends AuthUser {
@@ -161,5 +170,5 @@ export const badgesApi = {
 };
 
 export const leaderboardApi = {
-  getWeekly: () => api.get<LeaderboardEntry[]>('/leaderboard').then((r) => r.data),
+  get: () => api.get<LeaderboardResponse>('/leaderboard').then((r) => r.data),
 };

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { LeaderboardResponse } from '../services/api';
 
 interface DailyTask {
   id: number;
@@ -8,28 +9,21 @@ interface DailyTask {
   config: Record<string, unknown>;
 }
 
-interface LeaderboardEntry {
-  userId: number;
-  name: string;
-  points: number;
-  rank: number;
-}
-
 interface CacheState {
   todayTasks: DailyTask[];
-  leaderboard: LeaderboardEntry[];
+  leaderboardData: LeaderboardResponse | null;
   lastFetchedDate: string | null; // ISO date string
   setTodayTasks: (tasks: DailyTask[], date: string) => void;
-  setLeaderboard: (entries: LeaderboardEntry[]) => void;
+  setLeaderboardData: (data: LeaderboardResponse) => void;
   clearCache: () => void;
 }
 
 export const useCacheStore = create<CacheState>((set) => ({
   todayTasks: [],
-  leaderboard: [],
+  leaderboardData: null,
   lastFetchedDate: null,
 
   setTodayTasks: (todayTasks, lastFetchedDate) => set({ todayTasks, lastFetchedDate }),
-  setLeaderboard: (leaderboard) => set({ leaderboard }),
-  clearCache: () => set({ todayTasks: [], leaderboard: [], lastFetchedDate: null }),
+  setLeaderboardData: (leaderboardData) => set({ leaderboardData }),
+  clearCache: () => set({ todayTasks: [], leaderboardData: null, lastFetchedDate: null }),
 }));
