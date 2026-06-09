@@ -1,0 +1,32 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { BubbleSortView } from './BubbleSortView';
+
+interface ChallengeRendererProps {
+  type: string;
+  config: Record<string, unknown>;
+  onActionCaptured: (action: unknown) => void;
+}
+
+const RENDERERS: Record<string, React.ComponentType<ChallengeRendererProps>> = {
+  bubble_sort: BubbleSortView,
+};
+
+export function ChallengeRenderer(props: ChallengeRendererProps) {
+  const Renderer = RENDERERS[props.type];
+
+  if (!Renderer) {
+    return (
+      <View style={styles.fallback}>
+        <Text style={styles.fallbackText}>Unknown challenge type: {props.type}</Text>
+      </View>
+    );
+  }
+
+  return <Renderer {...props} />;
+}
+
+const styles = StyleSheet.create({
+  fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  fallbackText: { color: '#888', fontSize: 16 },
+});
