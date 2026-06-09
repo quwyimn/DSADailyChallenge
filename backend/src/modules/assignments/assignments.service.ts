@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 
@@ -6,9 +6,10 @@ import { CreateAssignmentDto } from './dto/create-assignment.dto';
 export class AssignmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(dto: CreateAssignmentDto) {
-    // Treat the admin-supplied YYYY-MM-DD as a UTC midnight date so the DATE
-    // field stores the exact calendar day the admin intended.
+  async create(dto: CreateAssignmentDto) {
+    const task = await this.prisma.task.findUnique({ where: { id: dto.taskId } });
+    if (!task) throw new NotFoundException(`Task ${dto.taskId} not found`);
+
     const date = new Date(dto.date + 'T00:00:00.000Z');
     return this.prisma.dailyAssignment.create({
       data: { taskId: dto.taskId, date },
