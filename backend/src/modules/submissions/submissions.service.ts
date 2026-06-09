@@ -39,7 +39,12 @@ export class SubmissionsService {
     if (existing) throw new ConflictException('Already submitted today');
 
     // 4 + 5. Grade via the strategy
-    const strategy = this.registry.resolve(task.type);
+    let strategy: ReturnType<typeof this.registry.resolve>;
+    try {
+      strategy = this.registry.resolve(task.type);
+    } catch {
+      throw new BadRequestException(`Challenge type '${task.type}' is not yet supported for submission`);
+    }
     const config = task.config as Record<string, unknown>;
     const { isCorrect, points, correctAnswer } = strategy.grade(config, dto.actions);
 
