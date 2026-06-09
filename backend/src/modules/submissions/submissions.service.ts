@@ -56,7 +56,7 @@ export class SubmissionsService {
     });
 
     // 7. Return — correctAnswer is intentionally revealed here (post-submission only)
-    return { id: submission.id, isCorrect, points, correctAnswer };
+    return { id: submission.id, isCorrect, points };
   }
 
   async getTodaySubmissions(userId: number) {
