@@ -1,0 +1,25 @@
+# Environment files - NEVER commit these
+.env
+.env.production
+.env.development
+.env.local
+
+# Node
+node_modules/
+dist/
+build/
+
+# Prisma
+backend/prisma/migrations/dev.db
+
+# Expo
+mobile/.expo/
+mobile/node_modules/
+
+# Admin
+admin/node_modules/
+admin/dist/
+
+# OS
+.DS_Store
+*.log
