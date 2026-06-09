@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // URL is managed exclusively via prisma.config.ts (CLI) and the PrismaPg adapter
+  // (runtime). Prisma 7 removed the url field from schema entirely.
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  user
+  admin
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model Class {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  grade     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  users User[]
+
+  @@map("classes")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(user)
+  classId      Int?     @map("class_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  class       Class?       @relation(fields: [classId], references: [id], onDelete: SetNull)
+  submissions Submission[]
+  streak      Streak?
+  userBadges  UserBadge[]
+
+  @@index([classId])
+  @@map("users")
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  type        String
+  title       String
+  description String?
+  // Challenge-specific payload — never contains the answer.
+  // Shape is strategy-defined; validated by the challenge engine, not the schema.
+  config      Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt      @map("updated_at") @db.Timestamptz
+
+  dailyAssignments DailyAssignment[]
+  submissions      Submission[]
+
+  @@map("tasks")
+}
+
+// Decouples the task bank from the calendar.
+// A task is reusable content; assigning it to a date makes it "today's task".
+// Daily reset = filter daily_assignments by today's GMT+7 date — no cron needed.
+model DailyAssignment {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  // Stored as a calendar DATE (no time). Treated as a GMT+7 calendar day by the API.
+  date      DateTime @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
+  @@index([date])
+  @@map("daily_assignments")
+}
+
+// The center of gravity. Streak, leaderboard, and admin stats all query this table.
+// One scored submission per (user, task, GMT+7-day) — enforced in SubmissionsService,
+// not here, because "same day" requires GMT+7 conversion which can't be expressed
+// as a SQL unique constraint on a UTC timestamp.
+model Submission {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  taskId    Int      @map("task_id")
+  actions   Json
+  isCorrect Boolean  @map("is_correct")
+  points    Int      @default(0)
+  // Always UTC. Convert to GMT+7 only when computing "today" in the service layer.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Composite index: fast lookup for duplicate-check (user+task on a given day)
+  // and for leaderboard weekly aggregation (user+createdAt range).
+  @@index([userId, taskId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("submissions")
+}
+
+model Streak {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  current     Int      @default(0)
+  longest     Int      @default(0)
+  // The GMT+7 date of the last day the streak was incremented, stored as UTC midnight.
+  // Used to detect whether today's tasks are already counted.
+  lastUpdated DateTime @map("last_updated") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("streaks")
+}
+
+model Badge {
+  id          Int     @id @default(autoincrement())
+  key         String  @unique
+  name        String
+  description String
+  iconUrl     String? @map("icon_url")
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  badgeId   Int      @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at") @db.Timestamptz
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
