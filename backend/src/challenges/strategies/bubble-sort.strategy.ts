@@ -1,4 +1,4 @@
-import type { ChallengeStrategy } from '../challenge.interface';
+import type { ChallengeStrategy, GradeResult } from '../challenge.interface';
 
 interface BubbleSortConfig {
   array: number[];
@@ -66,5 +66,31 @@ export const bubbleSortStrategy: ChallengeStrategy = {
         s.array.every((v: number, i: number) => v === step.array[i])
       );
     });
+  },
+
+  // actions: [{ step: number; array: number[] }] — user's predicted array after each comparison.
+  // config.points defaults to 10 if not set.
+  grade(config, actions): GradeResult {
+    const { array, stepsToPredict } = config as unknown as BubbleSortConfig;
+    const configPoints = (config as { points?: unknown })['points'];
+    const maxPoints = typeof configPoints === 'number' ? configPoints : 10;
+
+    const correctSteps = computeBubbleSortSteps(array, stepsToPredict);
+    const userActions = actions as { step: number; array: number[] }[];
+
+    if (!Array.isArray(userActions) || userActions.length !== correctSteps.length) {
+      return { isCorrect: false, points: 0, correctAnswer: correctSteps };
+    }
+
+    const isCorrect = correctSteps.every((step, idx) => {
+      const ua = userActions[idx];
+      return (
+        Array.isArray(ua?.array) &&
+        ua.array.length === step.array.length &&
+        ua.array.every((v: number, i: number) => v === step.array[i])
+      );
+    });
+
+    return { isCorrect, points: isCorrect ? maxPoints : 0, correctAnswer: correctSteps };
   },
 };

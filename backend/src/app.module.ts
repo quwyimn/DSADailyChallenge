@@ -8,6 +8,7 @@ import { ClassesModule } from './modules/classes/classes.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { DailyModule } from './modules/daily/daily.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
+import { SubmissionsModule } from './modules/submissions/submissions.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { HealthModule } from './health/health.module';
 
@@ -36,6 +37,7 @@ const REQUIRED_VARS = ['DATABASE_URL', 'JWT_SECRET'];
     TasksModule,
     DailyModule,
     AssignmentsModule,
+    SubmissionsModule,
   ],
 })
 export class AppModule {}
