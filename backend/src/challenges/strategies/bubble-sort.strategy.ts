@@ -68,7 +68,7 @@ export const bubbleSortStrategy: ChallengeStrategy = {
     });
   },
 
-  // actions: [{ step: number; array: number[] }] — user's predicted array after each comparison.
+  // actions: [{ step: number; didSwap: boolean }] — user predicts whether each comparison swaps.
   // config.points defaults to 10 if not set.
   grade(config, actions): GradeResult {
     const { array, stepsToPredict } = config as unknown as BubbleSortConfig;
@@ -76,20 +76,16 @@ export const bubbleSortStrategy: ChallengeStrategy = {
     const maxPoints = typeof configPoints === 'number' ? configPoints : 10;
 
     const correctSteps = computeBubbleSortSteps(array, stepsToPredict);
-    const userActions = actions as { step: number; array: number[] }[];
+    const userActions = actions as { step: number; didSwap: boolean }[];
 
     if (!Array.isArray(userActions) || userActions.length !== correctSteps.length) {
       return { isCorrect: false, points: 0, correctAnswer: correctSteps };
     }
 
-    const isCorrect = correctSteps.every((step, idx) => {
-      const ua = userActions[idx];
-      return (
-        Array.isArray(ua?.array) &&
-        ua.array.length === step.array.length &&
-        ua.array.every((v: number, i: number) => v === step.array[i])
-      );
-    });
+    // Each prediction is correct iff the user's didSwap matches the actual swap at that step
+    const isCorrect = correctSteps.every(
+      (step, idx) => typeof userActions[idx]?.didSwap === 'boolean' && userActions[idx].didSwap === step.swapped,
+    );
 
     return { isCorrect, points: isCorrect ? maxPoints : 0, correctAnswer: correctSteps };
   },

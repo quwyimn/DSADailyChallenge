@@ -2,28 +2,46 @@ import React, { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../App';
-import { authApi } from '../../services/api';
+import { authApi, dailyApi, DailyTask } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useCacheStore } from '../../store/cacheStore';
+import { useApi } from '../../hooks/useApi';
 import { LoadingOverlay } from '../../components/common/LoadingOverlay';
+import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { ScreenWrapper } from '../../components/common/ScreenWrapper';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+// Vietnam is UTC+7 with no DST — returns 'YYYY-MM-DD' for the current HCM calendar day.
+function getHcmDateString(): string {
+  const hcmMs = Date.now() + 7 * 60 * 60 * 1000;
+  return new Date(hcmMs).toISOString().slice(0, 10);
+}
+
 export function HomeScreen({ navigation }: Props) {
   const { token, user, setUser, logout } = useAuthStore();
-  const { todayTasks } = useCacheStore();
+  const { todayTasks, lastFetchedDate, setTodayTasks } = useCacheStore();
+  const { loading, error, execute, retry } = useApi<DailyTask[]>();
 
-  // Restore user profile if we only have a token (app relaunch after previous session).
-  // Token is already in SecureStore — use setUser so it is not redundantly re-written.
+  // Restore user profile on app relaunch (token present but no user in memory).
   useEffect(() => {
     if (token && !user) {
-      authApi.me().then(setUser).catch(() => {
-        // Token invalid/expired — force re-login
-        logout();
-      });
+      authApi.me().then(setUser).catch(() => logout());
     }
   }, [token, user, setUser, logout]);
+
+  // Fetch today's tasks once the user is available; skip if already fetched today.
+  useEffect(() => {
+    if (!user) return;
+    const today = getHcmDateString();
+    if (lastFetchedDate === today) return;
+    execute(() => dailyApi.getTodayTasks()).then((tasks) => {
+      if (tasks) setTodayTasks(tasks, today);
+    });
+    // Intentionally depends only on user.id: re-fetch only when the logged-in user changes.
+    // retry() re-runs the fetch directly without going through this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (!user) {
     return <LoadingOverlay fullScreen message="Restoring session…" />;
@@ -32,21 +50,33 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <Text style={styles.greeting}>Hello, {user.name} 👋</Text>
-        <Text style={styles.subtitle}>Today's challenges will appear here in Week 2.</Text>
+        <Text style={styles.greeting}>Hello, {user.name}</Text>
+        <Text style={styles.sectionTitle}>Today's Challenges</Text>
 
-        {todayTasks.length > 0 ? (
-          todayTasks.map((task) => (
-            <TouchableOpacity
-              key={task.id}
-              style={styles.taskCard}
-              onPress={() => navigation.navigate('Challenge', { taskId: task.id })}
-            >
-              <Text style={styles.taskTitle}>{task.title}</Text>
-              <Text style={styles.taskType}>{task.type}</Text>
-            </TouchableOpacity>
-          ))
+        {loading && <LoadingOverlay message="Loading today's tasks…" />}
+
+        {!loading && error ? <ErrorBanner message={error} onRetry={retry} /> : null}
+
+        {!loading && !error && todayTasks.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No tasks assigned for today.</Text>
+          </View>
         ) : null}
+
+        {!loading && !error
+          ? todayTasks.map((task) => (
+              <TouchableOpacity
+                key={task.id}
+                style={styles.taskCard}
+                onPress={() => navigation.navigate('Challenge', { taskId: task.id })}
+              >
+                <Text style={styles.taskTitle}>{task.title}</Text>
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeText}>{task.type.replace(/_/g, ' ')}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          : null}
 
         <View style={styles.navRow}>
           <TouchableOpacity style={styles.navBtn} onPress={() => navigation.navigate('Leaderboard')}>
@@ -67,8 +97,10 @@ export function HomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 32 },
-  greeting: { fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  subtitle: { fontSize: 15, color: '#888', marginBottom: 32 },
+  greeting: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  sectionTitle: { fontSize: 15, color: '#888', marginBottom: 20 },
+  emptyState: { paddingVertical: 24, alignItems: 'center' },
+  emptyText: { color: '#94a3b8', fontSize: 15 },
   taskCard: {
     backgroundColor: '#f0f6ff',
     borderRadius: 12,
@@ -76,7 +108,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   taskTitle: { fontSize: 16, fontWeight: '700' },
-  taskType: { fontSize: 13, color: '#4f87ff', marginTop: 4 },
+  typeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#dbeafe',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 6,
+  },
+  typeText: { fontSize: 12, color: '#2563eb', fontWeight: '600' },
   navRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
   navBtn: {
     flex: 1,
