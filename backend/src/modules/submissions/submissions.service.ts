@@ -7,6 +7,8 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChallengeRegistryService } from '../../challenges/challenge-registry.service';
+import { StreakService } from '../streak/streak.service';
+import { BadgeService } from '../badges/badge.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { getHcmToday, getHcmDayUtcRange } from '../../common/utils/hcm-date';
 
@@ -15,6 +17,8 @@ export class SubmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: ChallengeRegistryService,
+    private readonly streak: StreakService,
+    private readonly badge: BadgeService,
   ) {}
 
   async create(userId: number, dto: CreateSubmissionDto) {
@@ -60,7 +64,15 @@ export class SubmissionsService {
       },
     });
 
-    // 7. Return — correctAnswer is intentionally revealed here (post-submission only)
+    // 7. Update streak and award badges (fire-and-forget style — errors logged, not rethrown)
+    const { current: streakCurrent } = await this.streak.checkAndUpdate(userId).catch((e: unknown) => {
+      console.error('[StreakService] checkAndUpdate failed:', e);
+      return { current: 0, longest: 0 };
+    });
+    await this.badge.checkAndAward(userId, streakCurrent).catch((e: unknown) => {
+      console.error('[BadgeService] checkAndAward failed:', e);
+    });
+
     return { id: submission.id, isCorrect, points };
   }
 

@@ -101,6 +101,20 @@ export interface UserProfile extends AuthUser {
   badges: { key: string; name: string; description: string; iconUrl: string | null }[];
 }
 
+export interface StreakData {
+  current: number;
+  longest: number;
+  lastUpdated: string | null;
+}
+
+export interface BadgeItem {
+  key: string;
+  name: string;
+  description: string;
+  iconUrl: string | null;
+  awardedAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Typed endpoint functions
 // ---------------------------------------------------------------------------
@@ -136,6 +150,14 @@ export const submissionsApi = {
     api
       .post<SubmissionResult>('/submissions', { taskId, actions })
       .then((r) => r.data),
+};
+
+export const streakApi = {
+  get: () => api.get<StreakData>('/streak').then((r) => r.data),
+};
+
+export const badgesApi = {
+  get: () => api.get<BadgeItem[]>('/badges').then((r) => r.data),
 };
 
 export const leaderboardApi = {
