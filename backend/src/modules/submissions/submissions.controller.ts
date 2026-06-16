@@ -21,4 +21,9 @@ export class SubmissionsController {
   getToday(@CurrentUser() user: JwtPayload) {
     return this.submissions.getTodaySubmissions(user.sub);
   }
+
+  @Get('today-summary')
+  getTodaySummary(@CurrentUser() user: JwtPayload) {
+    return this.submissions.getTodaySummary(user.sub);
+  }
 }

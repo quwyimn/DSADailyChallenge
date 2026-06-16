@@ -11,6 +11,17 @@ export function getHcmToday(): Date {
   return new Date(`${y}-${m}-${day}T00:00:00.000Z`);
 }
 
+/** Returns the Asia/Ho_Chi_Minh calendar date (YYYY-MM-DD) for a UTC timestamp.
+ *  Used to bucket submissions by "day" for leaderboard best-of-day aggregation. */
+export function toHcmDateString(date: Date): string {
+  const hcmMs = date.getTime() + 7 * 60 * 60 * 1000;
+  const d = new Date(hcmMs);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Returns the UTC [start, end) range that spans exactly one Asia/Ho_Chi_Minh calendar day.
  *  Use for querying Timestamptz fields (e.g., submissions.created_at). */
 export function getHcmDayUtcRange(hcmDay: Date): { start: Date; end: Date } {
@@ -46,8 +57,10 @@ export function getHcmWeekRange(): {
 
   // Convert HCM midnight to actual UTC (HCM midnight = UTC midnight − 7 h)
   const weekStart = new Date(hcmMondayMidnightMs - HCM_OFFSET_MS);
-  // HCM Sunday 23:59:59 = HCM Monday + 7 days − 1 s, then subtract 7 h for UTC
-  const weekEnd = new Date(hcmMondayMidnightMs + 7 * 86_400_000 - 1000 - HCM_OFFSET_MS);
+  // HCM Sunday 23:59:59.999 = HCM Monday + 7 days − 1 ms, then subtract 7 h for UTC.
+  // Using -1ms (not -1000ms) avoids a ~1s gap where late-Sunday submissions would
+  // fall in neither this week's nor next week's [gte, lte] range.
+  const weekEnd = new Date(hcmMondayMidnightMs + 7 * 86_400_000 - 1 - HCM_OFFSET_MS);
 
   const fmtHcm = (ms: number): string => {
     const d = new Date(ms);

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { getHcmWeekRange } from '../../common/utils/hcm-date';
+import { getHcmWeekRange, toHcmDateString } from '../../common/utils/hcm-date';
 
 export interface LeaderboardEntry {
   rank: number;
@@ -9,6 +9,7 @@ export interface LeaderboardEntry {
   className: string;
   totalPoints: number;
   isCurrentUser: boolean;
+  avatarUrl: string | null;
 }
 
 export interface LeaderboardResponse {
@@ -27,38 +28,54 @@ export class LeaderboardService {
   async getWeekly(currentUserId: number): Promise<LeaderboardResponse> {
     const { weekStart, weekEnd, weekStartStr, weekEndStr } = getHcmWeekRange();
 
-    // Sum points per user for all submissions in the current HCM week
-    const grouped = await this.prisma.submission.groupBy({
-      by: ['userId'],
+    // Best-of-3: each (user, task, HCM day) counts its highest-scoring attempt,
+    // not every submission. Reduce the week's submissions to best-per-day before
+    // summing per user.
+    const submissions = await this.prisma.submission.findMany({
       where: { createdAt: { gte: weekStart, lte: weekEnd } },
-      _sum: { points: true },
-      orderBy: { _sum: { points: 'desc' } },
+      select: { userId: true, taskId: true, points: true, createdAt: true },
     });
 
-    if (grouped.length === 0) {
+    const bestByDay = new Map<string, number>();
+    for (const s of submissions) {
+      const key = `${s.userId}:${s.taskId}:${toHcmDateString(s.createdAt)}`;
+      const prev = bestByDay.get(key);
+      if (prev === undefined || s.points > prev) bestByDay.set(key, s.points);
+    }
+
+    const totals = new Map<number, number>();
+    for (const [key, points] of bestByDay) {
+      const userId = Number(key.split(':')[0]);
+      totals.set(userId, (totals.get(userId) ?? 0) + points);
+    }
+
+    if (totals.size === 0) {
       return { weekStart: weekStartStr, weekEnd: weekEndStr, currentUserRank: null, entries: [] };
     }
 
+    const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+
     // Fetch user details in one query
-    const userIds = grouped.map((g) => g.userId);
+    const userIds = sorted.map(([userId]) => userId);
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, name: true, class: { select: { name: true } } },
+      select: { id: true, name: true, avatarUrl: true, class: { select: { name: true } } },
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
     let currentUserRank: number | null = null;
-    const allEntries: LeaderboardEntry[] = grouped.map((g, idx) => {
+    const allEntries: LeaderboardEntry[] = sorted.map(([userId, totalPoints], idx) => {
       const rank = idx + 1;
-      const user = userMap.get(g.userId);
-      if (g.userId === currentUserId) currentUserRank = rank;
+      const user = userMap.get(userId);
+      if (userId === currentUserId) currentUserRank = rank;
       return {
         rank,
-        userId: g.userId,
+        userId,
         name: user?.name ?? 'Unknown',
         className: user?.class?.name ?? '',
-        totalPoints: g._sum.points ?? 0,
-        isCurrentUser: g.userId === currentUserId,
+        totalPoints,
+        isCurrentUser: userId === currentUserId,
+        avatarUrl: user?.avatarUrl ?? null,
       };
     });
 

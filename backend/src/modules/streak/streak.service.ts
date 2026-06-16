@@ -69,6 +69,8 @@ export class StreakService {
         select: { taskId: true },
       }),
       this.prisma.submission.findMany({
+        // "Completed" = at least one attempt today, regardless of score —
+        // isScored is no longer used for scoring decisions (best-of-3 model).
         where: { userId, createdAt: { gte: start, lt: end } },
         select: { taskId: true },
       }),

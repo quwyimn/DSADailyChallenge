@@ -39,6 +39,7 @@ model User {
   name         String
   role         Role     @default(user)
   classId      Int?     @map("class_id")
+  avatarUrl    String?  @map("avatar_url")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   class       Class?       @relation(fields: [classId], references: [id], onDelete: SetNull)
@@ -55,6 +56,10 @@ model Task {
   type        String
   title       String
   description String?
+  // "easy" | "medium" | "hard". Nullable for backward compatibility with any
+  // task created before difficulty tagging existed; the rotation cron only
+  // considers tasks where this is set.
+  difficulty  String?
   // Challenge-specific payload — never contains the answer.
   // Shape is strategy-defined; validated by the challenge engine, not the schema.
   config      Json
@@ -84,6 +89,20 @@ model DailyAssignment {
   @@map("daily_assignments")
 }
 
+// Per-difficulty rotation state for the daily-assignment cron.
+// taskOrder is a shuffled array of Task.id for that difficulty; cursor points
+// at the next index to assign. When cursor reaches taskOrder.length, the cron
+// reshuffles and resets cursor to 0 — "no repeat until exhausted".
+model TaskRotation {
+  id         Int      @id @default(autoincrement())
+  difficulty String   @unique
+  taskOrder  Json     @map("task_order")
+  cursor     Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("task_rotations")
+}
+
 // The center of gravity. Streak, leaderboard, and admin stats all query this table.
 // One scored submission per (user, task, GMT+7-day) — enforced in SubmissionsService,
 // not here, because "same day" requires GMT+7 conversion which can't be expressed
@@ -94,6 +113,7 @@ model Submission {
   taskId    Int      @map("task_id")
   actions   Json
   isCorrect Boolean  @map("is_correct")
+  isScored  Boolean  @default(true) @map("is_scored")
   points    Int      @default(0)
   // Always UTC. Convert to GMT+7 only when computing "today" in the service layer.
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz

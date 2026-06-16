@@ -23,6 +23,7 @@ export class AuthService {
     if (existing) throw new ConflictException('Email already in use');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(dto.email)}&size=128&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 
     const user = await this.prisma.user.create({
       data: {
@@ -31,8 +32,9 @@ export class AuthService {
         name: dto.name,
         role: 'user',
         classId: dto.classId ?? null,
+        avatarUrl,
       },
-      select: { id: true, email: true, name: true, role: true, classId: true },
+      select: { id: true, email: true, name: true, role: true, classId: true, avatarUrl: true },
     });
 
     return { token: this.signToken(user.id, user.email, user.role), user };
@@ -47,14 +49,14 @@ export class AuthService {
 
     return {
       token: this.signToken(user.id, user.email, user.role),
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, classId: user.classId },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role, classId: user.classId, avatarUrl: user.avatarUrl },
     };
   }
 
   async me(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, role: true, classId: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, classId: true, avatarUrl: true, createdAt: true },
     });
     if (!user) throw new NotFoundException('User not found');
     return user;

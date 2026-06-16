@@ -7,6 +7,8 @@ import {
   listTypes,
 } from './challenge.registry';
 import { bubbleSortStrategy } from './strategies/bubble-sort.strategy';
+import { linkedListStrategy } from './strategies/linked-list.strategy';
+import { binarySearchStrategy } from './strategies/binary-search.strategy';
 
 @Injectable()
 export class ChallengeRegistryService implements OnModuleInit {
@@ -14,6 +16,8 @@ export class ChallengeRegistryService implements OnModuleInit {
   // so it is explicit, testable, and happens in the NestJS lifecycle.
   onModuleInit(): void {
     registerStrategy('bubble_sort', bubbleSortStrategy);
+    registerStrategy('linked_list', linkedListStrategy);
+    registerStrategy('binary_search', binarySearchStrategy);
   }
 
   isKnownType(type: string): boolean {
