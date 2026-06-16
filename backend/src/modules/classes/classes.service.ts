@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClassDto } from './dto/create-class.dto';
+import { UpdateClassDto } from './dto/update-class.dto';
 
 @Injectable()
 export class ClassesService {
@@ -18,6 +19,10 @@ export class ClassesService {
     const cls = await this.prisma.class.findUnique({ where: { id } });
     if (!cls) throw new NotFoundException('Class not found');
     return cls;
+  }
+
+  update(id: number, dto: UpdateClassDto) {
+    return this.prisma.class.update({ where: { id }, data: dto });
   }
 
   async remove(id: number) {

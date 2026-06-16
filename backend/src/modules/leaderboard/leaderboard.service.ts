@@ -23,7 +23,7 @@ const MAX_ENTRIES = 50;
 
 @Injectable()
 export class LeaderboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getWeekly(currentUserId: number): Promise<LeaderboardResponse> {
     const { weekStart, weekEnd, weekStartStr, weekEndStr } = getHcmWeekRange();
