@@ -68,7 +68,14 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 // ---------------------------------------------------------------------------
 // Wire the 401 handler once at the module level (no circular import risk)
 // ---------------------------------------------------------------------------
-registerUnauthorizedHandler(() => useAuthStore.getState().logout());
+registerUnauthorizedHandler(() => {
+  // A token existing before logout() means this 401 came from an authenticated
+  // request whose session really expired — not from the public login/register
+  // call itself (which has no prior token to invalidate).
+  const hadToken = !!useAuthStore.getState().token;
+  useAuthStore.getState().logout();
+  if (hadToken) useAuthStore.getState().setSessionExpired(true);
+});
 
 // ---------------------------------------------------------------------------
 // Navigators

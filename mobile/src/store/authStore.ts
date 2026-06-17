@@ -10,6 +10,10 @@ interface AuthState {
   isLoading: boolean;
   justLoggedIn: boolean;
   isNewUser: boolean;
+  // True only when the user was bounced to the Login screen because an
+  // authenticated request 401'd (real token expiry) — not when a login
+  // attempt itself fails with 401 (wrong credentials, no prior session).
+  sessionExpired: boolean;
 
   // Full login/register: persist token + store user
   setAuth: (token: string, user: AuthUser) => void;
@@ -24,6 +28,7 @@ interface AuthState {
   clearJustLoggedIn: () => void;
   // Set by RegisterScreen after first-time registration
   setIsNewUser: (v: boolean) => void;
+  setSessionExpired: (v: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -32,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   justLoggedIn: false,
   isNewUser: false,
+  sessionExpired: false,
 
   setAuth: (token, user) => {
     persistToken(token);
@@ -59,4 +65,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearJustLoggedIn: () => set({ justLoggedIn: false }),
 
   setIsNewUser: (v) => set({ isNewUser: v }),
+
+  setSessionExpired: (v) => set({ sessionExpired: v }),
 }));

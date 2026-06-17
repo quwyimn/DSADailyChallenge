@@ -52,7 +52,10 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx --prefix /home/quwy/Documents/In_school/DSADailyChallenge/mobile tsc -p /home/quwy/Documents/In_school/DSADailyChallenge/mobile/tsconfig.json --noEmit)",
       "Bash(echo \"exit code: $?\")",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(npx vite *)",
+      "Bash(cat .env)",
+      "Bash(grep -r \"VITE_API\" .env*)"
     ]
   }
 }

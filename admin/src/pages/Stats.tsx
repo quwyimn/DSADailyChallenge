@@ -41,12 +41,14 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,.1)' }}>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>{d.className}</div>
-      <div style={{ color: '#64748b', marginBottom: 2 }}>{d.grade}</div>
-      <div style={{ color: rateColor(d.completionRate), fontWeight: 600, fontSize: 15 }}>{d.completionRate}% completion</div>
-      <div style={{ color: '#475569', marginTop: 4 }}>{d.studentsCompleted} / {d.totalStudents} students</div>
-      <div style={{ color: '#475569' }}>{d.totalSubmissions} submissions · {d.totalPoints} pts</div>
+    <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-[13px] shadow-[0_4px_12px_rgba(0,0,0,.1)]">
+      <div className="mb-1.5 font-bold">{d.className}</div>
+      <div className="mb-0.5 text-slate-500">{d.grade}</div>
+      <div className="text-[15px] font-semibold" style={{ color: rateColor(d.completionRate) }}>
+        {d.completionRate}% completion
+      </div>
+      <div className="mt-1 text-slate-600">{d.studentsCompleted} / {d.totalStudents} students</div>
+      <div className="text-slate-600">{d.totalSubmissions} submissions · {d.totalPoints} pts</div>
     </div>
   );
 }
@@ -74,26 +76,30 @@ export function StatsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
-        <h1 style={{ fontSize: 20 }}>Class Stats</h1>
-        <button onClick={load} style={s.refreshBtn} disabled={loading}>
+      <div className="mb-1.5 flex flex-wrap items-center gap-3.5">
+        <h1 className="text-xl">Class Stats</h1>
+        <button onClick={load} className="min-h-11 rounded-md border border-slate-200 bg-slate-100 px-3.5 text-[13px] text-slate-700 disabled:opacity-70" disabled={loading}>
           {loading ? 'Loading…' : '↻ Refresh'}
         </button>
       </div>
-      <p style={{ fontSize: 13, color: '#64748b', marginBottom: 28 }}>
+      <p className="mb-7 text-[13px] text-slate-500">
         Week: {getWeekRange()}
       </p>
 
-      {error && <div style={s.errorBox}>{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] text-red-700">
+          {error}
+        </div>
+      )}
 
       {!loading && stats.length === 0 && !error && (
-        <p style={{ color: '#94a3b8' }}>No class data available.</p>
+        <p className="text-slate-400">No class data available.</p>
       )}
 
       {/* Bar chart */}
       {stats.length > 0 && (
-        <div style={{ ...s.card, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 20 }}>
+        <div className="mb-6 rounded-[10px] bg-white p-4 shadow-sm sm:p-6">
+          <h2 className="mb-5 text-sm font-bold text-slate-700">
             Completion Rate by Class (%)
           </h2>
           <ResponsiveContainer width="100%" height={260}>
@@ -124,10 +130,10 @@ export function StatsPage() {
           </ResponsiveContainer>
 
           {/* Legend */}
-          <div style={{ display: 'flex', gap: 20, marginTop: 12, justifyContent: 'center' }}>
+          <div className="mt-3 flex flex-wrap justify-center gap-3 sm:gap-5">
             {[{ label: '≥ 80% (Good)', color: '#22c55e' }, { label: '50–79% (OK)', color: '#eab308' }, { label: '< 50% (Low)', color: '#ef4444' }].map(({ label, color }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
+              <div key={label} className="flex items-center gap-1.5 text-xs text-slate-500">
+                <div className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />
                 {label}
               </div>
             ))}
@@ -137,59 +143,79 @@ export function StatsPage() {
 
       {/* Detail table */}
       {stats.length > 0 && (
-        <div style={s.tableWrap}>
-          <table style={s.table}>
-            <thead>
-              <tr style={s.thead}>
-                <th style={s.th}>Class</th>
-                <th style={s.th}>Grade</th>
-                <th style={s.th}>Students</th>
-                <th style={s.th}>Completed</th>
-                <th style={s.th}>Rate</th>
-                <th style={s.th}>Submissions</th>
-                <th style={s.th}>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((row) => (
-                <tr key={row.classId} style={s.tr}>
-                  <td style={{ ...s.td, fontWeight: 500 }}>{row.className}</td>
-                  <td style={s.td}>{row.grade}</td>
-                  <td style={s.td}>{row.totalStudents}</td>
-                  <td style={s.td}>{row.studentsCompleted}</td>
-                  <td style={s.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: rateColor(row.completionRate), minWidth: 38 }}>
-                        {row.completionRate}%
-                      </span>
-                      <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden', minWidth: 80 }}>
-                        <div style={{
-                          height: '100%', width: `${row.completionRate}%`,
-                          background: rateColor(row.completionRate), borderRadius: 3,
-                        }} />
-                      </div>
-                    </div>
-                  </td>
-                  <td style={s.td}>{row.totalSubmissions}</td>
-                  <td style={s.td}>{row.totalPoints}</td>
+        <>
+          {/* Mobile: card list */}
+          <div className="space-y-3 md:hidden">
+            {stats.map((row) => (
+              <div key={row.classId} className="rounded-xl bg-white p-4 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">{row.className}</div>
+                    <div className="text-xs text-slate-500">{row.grade}</div>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: rateColor(row.completionRate) }}>
+                    {row.completionRate}%
+                  </span>
+                </div>
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${row.completionRate}%`, background: rateColor(row.completionRate) }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-y-1 text-xs text-slate-500">
+                  <div>Students: <span className="font-medium text-slate-900">{row.totalStudents}</span></div>
+                  <div>Completed: <span className="font-medium text-slate-900">{row.studentsCompleted}</span></div>
+                  <div>Submissions: <span className="font-medium text-slate-900">{row.totalSubmissions}</span></div>
+                  <div>Points: <span className="font-medium text-slate-900">{row.totalPoints}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden overflow-x-auto rounded-[10px] bg-white shadow-sm md:block">
+            <table className="w-full min-w-[680px] border-collapse">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Class</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Grade</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Students</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Completed</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Rate</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Submissions</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Points</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {stats.map((row) => (
+                  <tr key={row.classId} className="border-b border-slate-100">
+                    <td className="px-3.5 py-3 text-sm font-medium">{row.className}</td>
+                    <td className="px-3.5 py-3 text-sm">{row.grade}</td>
+                    <td className="px-3.5 py-3 text-sm">{row.totalStudents}</td>
+                    <td className="px-3.5 py-3 text-sm">{row.studentsCompleted}</td>
+                    <td className="px-3.5 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="min-w-[38px] text-[13px] font-bold" style={{ color: rateColor(row.completionRate) }}>
+                          {row.completionRate}%
+                        </span>
+                        <div className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${row.completionRate}%`, background: rateColor(row.completionRate) }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3.5 py-3 text-sm">{row.totalSubmissions}</td>
+                    <td className="px-3.5 py-3 text-sm">{row.totalPoints}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  refreshBtn: { padding: '6px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, cursor: 'pointer', color: '#374151' },
-  errorBox:   { background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 },
-  card:       { background: '#fff', borderRadius: 10, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' },
-  tableWrap:  { background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' },
-  table:      { borderCollapse: 'collapse', width: '100%' },
-  thead:      { background: '#f8fafc' },
-  th:         { padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  tr:         { borderBottom: '1px solid #f1f5f9' },
-  td:         { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' },
-};

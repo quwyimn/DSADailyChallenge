@@ -26,36 +26,25 @@ interface ModalProps {
 
 function Modal({ title, onClose, children }: ModalProps) {
   return (
-    <div style={m.backdrop} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={m.dialog}>
-        <div style={m.dialogHeader}>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>{title}</span>
-          <button onClick={onClose} style={m.closeBtn}>✕</button>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="flex max-h-[90vh] w-full max-w-[560px] flex-col overflow-y-auto rounded-xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <span className="text-[15px] font-bold">{title}</span>
+          <button
+            onClick={onClose}
+            className="flex min-h-11 min-w-11 items-center justify-center text-base text-slate-400"
+          >
+            ✕
+          </button>
         </div>
-        <div style={{ padding: '20px 24px 24px' }}>{children}</div>
+        <div className="p-5 sm:p-6">{children}</div>
       </div>
     </div>
   );
 }
-
-const m: Record<string, React.CSSProperties> = {
-  backdrop: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-  },
-  dialog: {
-    background: '#fff', borderRadius: 12, width: 560, maxWidth: '95vw',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-  },
-  dialogHeader: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '16px 24px', borderBottom: '1px solid #e2e8f0',
-  },
-  closeBtn: {
-    background: 'none', border: 'none', cursor: 'pointer', fontSize: 16,
-    color: '#94a3b8', lineHeight: 1, padding: '4px 6px',
-  },
-};
 
 interface TaskFormValues {
   type: string;
@@ -80,37 +69,37 @@ function TaskForm({ values, onChange, onSubmit, submitLabel, busy, configError, 
 
   return (
     <form onSubmit={onSubmit}>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-        <div style={{ ...s.field, flex: 1 }}>
-          <label style={s.label}>Type</label>
-          <select style={s.input} value={values.type} onChange={set('type')}>
+      <div className="mb-3.5 flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col sm:flex-1">
+          <label className="mb-1.5 text-xs font-semibold text-slate-700">Type</label>
+          <select className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" value={values.type} onChange={set('type')}>
             {TASK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-        <div style={{ ...s.field, flex: 2 }}>
-          <label style={s.label}>Title</label>
-          <input style={s.input} placeholder="Task title" value={values.title} onChange={set('title')} required />
+        <div className="flex flex-col sm:flex-[2]">
+          <label className="mb-1.5 text-xs font-semibold text-slate-700">Title</label>
+          <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="Task title" value={values.title} onChange={set('title')} required />
         </div>
       </div>
 
-      <div style={{ ...s.field, marginBottom: 14 }}>
-        <label style={s.label}>Description (optional)</label>
-        <input style={s.input} placeholder="Short description" value={values.description} onChange={set('description')} />
+      <div className="mb-3.5 flex flex-col">
+        <label className="mb-1.5 text-xs font-semibold text-slate-700">Description (optional)</label>
+        <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="Short description" value={values.description} onChange={set('description')} />
       </div>
 
-      <div style={{ ...s.field, marginBottom: 18 }}>
-        <label style={s.label}>Config (JSON)</label>
+      <div className="mb-[18px] flex flex-col">
+        <label className="mb-1.5 text-xs font-semibold text-slate-700">Config (JSON)</label>
         <textarea
-          style={{ ...s.input, height: 120, resize: 'vertical', fontFamily: 'ui-monospace, monospace', fontSize: 12 }}
+          className="h-[120px] w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 font-mono text-xs text-slate-900"
           placeholder={'{\n  "array": [5, 3, 1, 4, 2],\n  "stepsToPredict": 5\n}'}
           value={values.configText}
           onChange={(e) => onConfigChange(e.target.value)}
           required
         />
-        {configError && <span style={s.errorText}>{configError}</span>}
+        {configError && <span className="mt-1 block text-xs text-red-500">{configError}</span>}
       </div>
 
-      <button type="submit" style={s.btn} disabled={busy}>
+      <button type="submit" className="min-h-11 w-full rounded-lg bg-[#4f87ff] px-[18px] py-2.5 text-[13px] font-semibold text-white disabled:opacity-70 sm:w-auto" disabled={busy}>
         {busy ? 'Saving…' : submitLabel}
       </button>
     </form>
@@ -210,58 +199,92 @@ export function TasksPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 style={{ fontSize: 20, marginBottom: 2 }}>Challenge Bank</h1>
-          <p style={{ fontSize: 13, color: '#64748b' }}>{tasks.length} tasks total</p>
+          <h1 className="mb-0.5 text-xl">Challenge Bank</h1>
+          <p className="text-[13px] text-slate-500">{tasks.length} tasks total</p>
         </div>
-        <button onClick={() => { setShowCreate(true); setCreateValues(EMPTY_FORM); setCreateCfgErr(''); }} style={s.btn}>
+        <button
+          onClick={() => { setShowCreate(true); setCreateValues(EMPTY_FORM); setCreateCfgErr(''); }}
+          className="min-h-11 w-full rounded-lg bg-[#4f87ff] px-[18px] py-2.5 text-[13px] font-semibold text-white sm:w-auto"
+        >
           + New Task
         </button>
       </div>
 
-      {error && <div style={s.errorBox}>{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] text-red-700">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <p style={{ color: '#64748b' }}>Loading…</p>
+        <p className="text-slate-500">Loading…</p>
       ) : tasks.length === 0 ? (
-        <p style={{ color: '#94a3b8' }}>No tasks yet. Create one above.</p>
+        <p className="text-slate-400">No tasks yet. Create one above.</p>
       ) : (
-        <div style={s.tableWrap}>
-          <table style={s.table}>
-            <thead>
-              <tr style={s.thead}>
-                <th style={s.th}>ID</th>
-                <th style={s.th}>Type</th>
-                <th style={s.th}>Title</th>
-                <th style={s.th}>Config preview</th>
-                <th style={s.th}>Created</th>
-                <th style={s.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((t) => (
-                <tr key={t.id} style={s.tr}>
-                  <td style={{ ...s.td, color: '#94a3b8', fontSize: 12 }}>{t.id}</td>
-                  <td style={s.td}><code>{t.type}</code></td>
-                  <td style={{ ...s.td, fontWeight: 500 }}>{t.title}</td>
-                  <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 11, color: '#64748b', maxWidth: 220 }}>
-                    {JSON.stringify(t.config).slice(0, 60)}…
-                  </td>
-                  <td style={{ ...s.td, fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                    {fmtDate(t.createdAt)}
-                  </td>
-                  <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                    <button onClick={() => openEdit(t)} style={s.editBtn}>Edit</button>
-                    <button onClick={() => handleDelete(t.id, t.title)} style={{ ...s.deleteBtn, marginLeft: 6 }}>
-                      Delete
-                    </button>
-                  </td>
+        <>
+          {/* Mobile: card list */}
+          <div className="space-y-3 md:hidden">
+            {tasks.map((t) => (
+              <div key={t.id} className="rounded-xl bg-white p-4 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <code className="text-xs">{t.type}</code>
+                  <span className="text-xs text-slate-400">{fmtDate(t.createdAt)}</span>
+                </div>
+                <div className="mb-1.5 text-sm font-medium">{t.title}</div>
+                <div className="mb-3 break-all font-mono text-xs text-slate-500">
+                  {JSON.stringify(t.config).slice(0, 80)}…
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(t)} className="min-h-11 flex-1 rounded-md border border-blue-200 text-xs font-medium text-blue-500">
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(t.id, t.title)} className="min-h-11 flex-1 rounded-md border border-red-300 text-xs font-medium text-red-500">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden overflow-x-auto rounded-[10px] bg-white shadow-sm md:block">
+            <table className="w-full min-w-[640px] border-collapse">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ID</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Type</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Title</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Config preview</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Created</th>
+                  <th className="border-b border-slate-200 px-3.5 py-[11px] text-left text-[11px] font-bold uppercase tracking-wide text-slate-500" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {tasks.map((t) => (
+                  <tr key={t.id} className="border-b border-slate-100">
+                    <td className="px-3.5 py-3 text-xs text-slate-400">{t.id}</td>
+                    <td className="px-3.5 py-3 text-sm"><code>{t.type}</code></td>
+                    <td className="px-3.5 py-3 text-sm font-medium">{t.title}</td>
+                    <td className="max-w-[220px] truncate px-3.5 py-3 font-mono text-[11px] text-slate-500">
+                      {JSON.stringify(t.config).slice(0, 60)}…
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3 text-xs text-slate-400">
+                      {fmtDate(t.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-3.5 py-3">
+                      <button onClick={() => openEdit(t)} className="rounded-md border border-blue-200 px-2.5 py-1 text-xs text-blue-500">Edit</button>
+                      <button onClick={() => handleDelete(t.id, t.title)} className="ml-1.5 rounded-md border border-red-300 px-2.5 py-1 text-xs text-red-500">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Create modal */}
@@ -296,20 +319,3 @@ export function TasksPage() {
     </div>
   );
 }
-
-const s: Record<string, React.CSSProperties> = {
-  btn:       { padding: '9px 18px', background: '#4f87ff', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-  errorBox:  { background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 },
-  tableWrap: { background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.06)' },
-  table:     { borderCollapse: 'collapse', width: '100%' },
-  thead:     { background: '#f8fafc' },
-  th:        { padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  tr:        { borderBottom: '1px solid #f1f5f9' },
-  td:        { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' },
-  editBtn:   { background: 'none', border: '1px solid #bfdbfe', color: '#3b82f6', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
-  deleteBtn: { background: 'none', border: '1px solid #fca5a5', color: '#ef4444', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 },
-  field:     { display: 'flex', flexDirection: 'column' },
-  label:     { fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 },
-  input:     { padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', width: '100%', color: '#0f172a' },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' },
-};
