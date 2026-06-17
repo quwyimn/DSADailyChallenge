@@ -145,12 +145,15 @@ export class SubmissionsService {
     return best ?? null;
   }
 
-  async getTodaySummary(userId: number): Promise<{ pointsToday: number }> {
+  async getTodaySummary(userId: number): Promise<{
+    pointsToday: number;
+    breakdown: Array<{ taskId: number; title: string; type: string; points: number; isCorrect: boolean }>;
+  }> {
     const today = getHcmToday();
     const { start, end } = getHcmDayUtcRange(today);
     const submissions = await this.prisma.submission.findMany({
       where: { userId, createdAt: { gte: start, lt: end } },
-      select: { taskId: true, points: true },
+      select: { taskId: true, points: true, isCorrect: true, task: { select: { title: true, type: true } } },
     });
     const bestByTask = new Map<number, number>();
     for (const s of submissions) {
@@ -158,7 +161,11 @@ export class SubmissionsService {
       if (prev === undefined || s.points > prev) bestByTask.set(s.taskId, s.points);
     }
     const pointsToday = [...bestByTask.values()].reduce((sum, p) => sum + p, 0);
-    return { pointsToday };
+    const breakdown = [...bestByTask.entries()].map(([taskId, bestPoints]) => {
+      const s = submissions.find((sub) => sub.taskId === taskId)!;
+      return { taskId, title: s.task.title, type: s.task.type, points: bestPoints, isCorrect: bestPoints > 0 };
+    });
+    return { pointsToday, breakdown };
   }
 
   async getTodaySubmissions(userId: number) {

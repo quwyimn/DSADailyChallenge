@@ -2,10 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { getHcmToday } from '../../common/utils/hcm-date';
+import { AutoAssignService } from './auto-assign.service';
 
 @Injectable()
 export class AssignmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly autoAssign: AutoAssignService,
+  ) {}
 
   async create(dto: CreateAssignmentDto) {
     const task = await this.prisma.task.findUnique({ where: { id: dto.taskId } });
@@ -33,5 +37,10 @@ export class AssignmentsService {
     const existing = await this.prisma.dailyAssignment.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Assignment ${id} not found`);
     return this.prisma.dailyAssignment.delete({ where: { id } });
+  }
+
+  async generateForDate(dateStr: string): Promise<void> {
+    const date = new Date(dateStr + 'T00:00:00.000Z');
+    await this.autoAssign.ensureTodayAssigned(date);
   }
 }

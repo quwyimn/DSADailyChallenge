@@ -21,6 +21,13 @@ export class AssignmentsController {
     return this.assignments.create(dto);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @Post('generate')
+  generate(@Body() body: { date: string }) {
+    return this.assignments.generateForDate(body.date);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.assignments.remove(id);

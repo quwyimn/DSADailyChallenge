@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChallengeRegistryService } from '../../challenges/challenge-registry.service';
 import { getHcmToday, getHcmDayUtcRange } from '../../common/utils/hcm-date';
+import { AutoAssignService } from '../assignments/auto-assign.service';
 
 const DIFFICULTY_ORDER: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
@@ -34,9 +35,12 @@ export class DailyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly challengeRegistry: ChallengeRegistryService,
+    private readonly autoAssign: AutoAssignService,
   ) {}
 
   async getTodayTasks(userId: number): Promise<DailySubjectView[]> {
+    await this.autoAssign.ensureTodayAssigned(new Date());
+
     const today = getHcmToday();
 
     const assignments = await this.prisma.dailyAssignment.findMany({
