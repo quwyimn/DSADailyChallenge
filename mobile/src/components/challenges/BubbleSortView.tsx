@@ -34,6 +34,15 @@ interface Props {
   onActionCaptured: (action: unknown) => void;
 }
 
+const HINT_BY_TYPE: Record<string, string> = {
+  bubble_sort: 'Gợi ý: So sánh từng cặp phần tử liền kề từ trái sang phải. Phần tử lớn hơn sẽ được đẩy sang phải.',
+  binary_search: 'Gợi ý: So sánh target với phần tử giữa. Nếu target nhỏ hơn, tìm bên trái. Nếu lớn hơn, tìm bên phải.',
+  linked_list: 'Gợi ý: Chú ý thứ tự các node và hướng của các con trỏ next.',
+  stack_ops: 'Gợi ý: Stack hoạt động theo nguyên tắc LIFO — phần tử vào sau sẽ ra trước.',
+  queue_ops: 'Gợi ý: Queue hoạt động theo nguyên tắc FIFO — phần tử vào trước sẽ ra trước.',
+};
+const DEFAULT_HINT = 'Gợi ý: Xem lại đề bài và thử lại từng bước một.';
+
 function getStepPair(n: number, stepIndex: number): [number, number] {
   let k = 0;
   for (let i = 0; i < n - 1; i++) {
@@ -56,7 +65,7 @@ function recomputeArray(orig: number[], acts: SwapAction[]): number[] {
   return arr;
 }
 
-export function BubbleSortView({ config, onActionCaptured }: Props) {
+export function BubbleSortView({ type, config, onActionCaptured }: Props) {
   const { array, stepsToPredict } = config as unknown as BubbleSortConfig;
   const { activeTaskId, submissionResult, setSubmissionResult } = useSessionStore();
   const { t } = useLanguageStore();
@@ -302,6 +311,9 @@ export function BubbleSortView({ config, onActionCaptured }: Props) {
             <Text style={styles.resultPoints}>
               {result.isCorrect ? `+${result.points}` : `0`} {t('challenge.points')}
             </Text>
+            {!result.isCorrect && (
+              <Text style={styles.hintText}>{HINT_BY_TYPE[type] ?? DEFAULT_HINT}</Text>
+            )}
             <AttemptHistory
               history={result.attemptHistory}
               attemptsUsed={result.attemptsUsed}
@@ -455,6 +467,7 @@ const styles = StyleSheet.create({
   resultEmoji: { fontSize: 36, marginBottom: 6 },
   resultHeading: { fontSize: 24, fontWeight: '900', marginBottom: 4 },
   resultPoints: { fontSize: 16, color: '#475569', fontWeight: '600', marginBottom: 8 },
+  hintText: { fontSize: 14, color: '#475569', marginTop: 4, textAlign: 'center' },
   textGreen: { color: '#15803d' },
   textRed: { color: '#991b1b' },
 

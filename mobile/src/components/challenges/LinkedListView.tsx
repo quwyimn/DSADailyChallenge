@@ -56,39 +56,14 @@ const OPERATION_LABEL_KEYS: Record<LinkedListOperation, TranslationKey> = {
   reverse: 'linkedList.operation.reverse',
 };
 
-function computeCorrectAnswer(config: LinkedListConfig): number[] {
-  const { nodes, operation, targetIndex, insertValue } = config;
-  const result = [...nodes];
-
-  switch (operation) {
-    case 'delete_head':
-      result.shift();
-      break;
-    case 'delete_tail':
-      result.pop();
-      break;
-    case 'delete_at':
-      result.splice(targetIndex as number, 1);
-      break;
-    case 'delete_middle':
-      result.splice(Math.floor(result.length / 2), 1);
-      break;
-    case 'insert_head':
-      result.unshift(insertValue as number);
-      break;
-    case 'insert_tail':
-      result.push(insertValue as number);
-      break;
-    case 'insert_at':
-      result.splice(targetIndex as number, 0, insertValue as number);
-      break;
-    case 'reverse':
-      result.reverse();
-      break;
-  }
-
-  return result;
-}
+const HINT_BY_TYPE: Record<string, string> = {
+  bubble_sort: 'Gợi ý: So sánh từng cặp phần tử liền kề từ trái sang phải. Phần tử lớn hơn sẽ được đẩy sang phải.',
+  binary_search: 'Gợi ý: So sánh target với phần tử giữa. Nếu target nhỏ hơn, tìm bên trái. Nếu lớn hơn, tìm bên phải.',
+  linked_list: 'Gợi ý: Chú ý thứ tự các node và hướng của các con trỏ next.',
+  stack_ops: 'Gợi ý: Stack hoạt động theo nguyên tắc LIFO — phần tử vào sau sẽ ra trước.',
+  queue_ops: 'Gợi ý: Queue hoạt động theo nguyên tắc FIFO — phần tử vào trước sẽ ra trước.',
+};
+const DEFAULT_HINT = 'Gợi ý: Xem lại đề bài và thử lại từng bước một.';
 
 interface PositionSlotProps {
   pos: number;
@@ -111,7 +86,7 @@ function PositionSlot({ pos, selected, insertValue, onPress }: PositionSlotProps
   );
 }
 
-export function LinkedListView({ config, onActionCaptured }: Props) {
+export function LinkedListView({ type, config, onActionCaptured }: Props) {
   const c = config as unknown as LinkedListConfig;
   const { nodes, operation } = c;
   const insertValue = c.insertValue ?? 0;
@@ -286,7 +261,6 @@ export function LinkedListView({ config, onActionCaptured }: Props) {
     return items;
   }
 
-  const correctAnswer = computeCorrectAnswer(c);
   const canSubmit = confirmed && isPredicting;
 
   return (
@@ -432,9 +406,7 @@ export function LinkedListView({ config, onActionCaptured }: Props) {
               {result.isCorrect ? `+${result.points}` : '0'} {t('challenge.points')}
             </Text>
             {!result.isCorrect && (
-              <Text style={styles.correctAnswerText}>
-                {t('linkedList.correctAnswer')} [{correctAnswer.join(', ')}]
-              </Text>
+              <Text style={styles.hintText}>{HINT_BY_TYPE[type] ?? DEFAULT_HINT}</Text>
             )}
             <AttemptHistory
               history={result.attemptHistory}
@@ -574,7 +546,7 @@ const styles = StyleSheet.create({
   resultEmoji: { fontSize: 36, marginBottom: 6 },
   resultHeading: { fontSize: 24, fontWeight: '900', marginBottom: 4 },
   resultPoints: { fontSize: 16, color: '#475569', fontWeight: '600', marginBottom: 8 },
-  correctAnswerText: { fontSize: 14, color: '#475569', marginTop: 4, textAlign: 'center' },
+  hintText: { fontSize: 14, color: '#475569', marginTop: 4, textAlign: 'center' },
   textGreen: { color: '#15803d' },
   textRed: { color: '#991b1b' },
 

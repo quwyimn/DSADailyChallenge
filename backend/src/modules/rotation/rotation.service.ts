@@ -19,6 +19,7 @@ export class RotationService implements OnModuleInit {
   // Self-healing: if the app was down at 00:00 GMT+7, today's assignments
   // get created as soon as it comes back up.
   async onModuleInit() {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     await this.ensureTodayAssignments();
   }
 
@@ -87,7 +88,11 @@ export class RotationService implements OnModuleInit {
     await this.prisma.$transaction(
       async (tx) => {
         for (const { taskId, type, difficulty } of picks) {
-          await tx.dailyAssignment.create({ data: { taskId, date: today } });
+          await tx.dailyAssignment.upsert({
+            where: { taskId_date: { taskId, date: today } },
+            create: { taskId, date: today },
+            update: {},
+          });
           created.push(`${type}:${difficulty}:${taskId}`);
         }
       },

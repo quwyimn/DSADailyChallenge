@@ -16,6 +16,11 @@ export function parseApiError(error: unknown): ApiError {
     }
     const data = error.response?.data as { message?: unknown } | undefined;
     const msg = extractMessage(data?.message) ?? error.message;
+    // The backend's attempt-limit response is a raw English technical message
+    // ("Maximum attempts reached for today") — show a friendly Vietnamese one instead.
+    if (msg === 'Maximum attempts reached for today') {
+      return { message: 'Bạn đã hết lượt chơi cho câu này hôm nay.', statusCode: status };
+    }
     return { message: msg, statusCode: status };
   }
   if (error instanceof Error) {
