@@ -35,9 +35,10 @@ export class RotationService implements OnModuleInit {
    * each picked via a no-repeat-until-exhausted rotation scoped to that
    * (type, difficulty) pair.
    *
-   * No-op if today already has the full expected set. If a partial set is found
-   * (e.g. leftover rows from old code that only created 1 per type), wipes them
-   * and regenerates from scratch so users always get 3 tasks per subject.
+   * No-op if today already has the full expected set. Otherwise, only the
+   * (type, difficulty) combinations not yet covered are filled in — existing
+   * rows are never deleted, so manually-assigned tasks from the admin panel
+   * coexist with rotation-assigned ones.
    */
   async ensureTodayAssignments(date: Date = getHcmToday()): Promise<void> {
     const today = date;
@@ -57,12 +58,13 @@ export class RotationService implements OnModuleInit {
       return;
     }
 
-    if (existing > 0) {
-      this.logger.warn(
-        `Partial daily assignments for ${dateStr} (${existing}/${expectedCount}) — wiping and regenerating`,
-      );
-      await this.prisma.dailyAssignment.deleteMany({ where: { date: today } });
-    }
+    const existingAssignments = await this.prisma.dailyAssignment.findMany({
+      where: { date: today },
+      select: { task: { select: { type: true, difficulty: true } } },
+    });
+    const covered = new Set(
+      existingAssignments.map((a) => `${a.task.type}:${a.task.difficulty}`),
+    );
 
     // Rotation reads (findMany + findUnique) and the rotation-cursor upsert run
     // outside the transaction — on Supabase's pooler, a cold connection made
@@ -72,6 +74,8 @@ export class RotationService implements OnModuleInit {
     const picks: { taskId: number; type: string; difficulty: string }[] = [];
     for (const type of types) {
       for (const difficulty of DIFFICULTIES) {
+        if (covered.has(`${type}:${difficulty}`)) continue;
+
         const taskId = await this.pickNextTaskOutsideTx(type, difficulty);
         if (taskId === null) {
           this.logger.warn(
@@ -81,6 +85,11 @@ export class RotationService implements OnModuleInit {
         }
         picks.push({ taskId, type, difficulty });
       }
+    }
+
+    if (picks.length === 0) {
+      this.logger.debug(`No missing daily assignments for ${dateStr}`);
+      return;
     }
 
     const created: string[] = [];
