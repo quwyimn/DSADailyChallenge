@@ -10,6 +10,7 @@ interface CacheState {
   dailyHistory: DailyHistoryEntry[] | null;
   latestBadge: BadgeItem | null;
   allTasksCompletedToday: boolean;
+  refreshTodayTasks: (() => void) | null;
   setTodayTasks: (tasks: DailySubject[], date: string) => void;
   setLeaderboardData: (data: LeaderboardResponse) => void;
   setPointsToday: (v: number) => void;
@@ -17,6 +18,7 @@ interface CacheState {
   setDailyHistory: (history: DailyHistoryEntry[]) => void;
   setLatestBadge: (badge: BadgeItem | null) => void;
   setAllTasksCompletedToday: (v: boolean) => void;
+  setRefreshTodayTasks: (fn: (() => void) | null) => void;
   addPoints: (points: number) => void;
   incrementAttempts: (taskId: number) => void;
   clearCache: () => void;
@@ -32,6 +34,7 @@ export const useCacheStore = create<CacheState>((set) => ({
   dailyHistory: null,
   latestBadge: null,
   allTasksCompletedToday: false,
+  refreshTodayTasks: null,
 
   setTodayTasks: (todayTasks, lastFetchedDate) => set({ todayTasks, lastFetchedDate }),
   setLeaderboardData: (leaderboardData) => set({ leaderboardData }),
@@ -40,6 +43,7 @@ export const useCacheStore = create<CacheState>((set) => ({
   setDailyHistory: (dailyHistory) => set({ dailyHistory }),
   setLatestBadge: (latestBadge) => set({ latestBadge }),
   setAllTasksCompletedToday: (allTasksCompletedToday) => set({ allTasksCompletedToday }),
+  setRefreshTodayTasks: (refreshTodayTasks) => set({ refreshTodayTasks }),
   addPoints: (points) => set((state) => ({ pointsToday: (state.pointsToday ?? 0) + points })),
   incrementAttempts: (taskId) =>
     set((state) => ({

@@ -23,6 +23,18 @@
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c95d5714-0dac-459b-aff8-34ce9eafdda8"
+      }
+    },
+    "owner": "quwy",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c95d5714-0dac-459b-aff8-34ce9eafdda8"
+    }
   }
 }

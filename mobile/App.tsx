@@ -95,11 +95,15 @@ function LearnStackNavigator() {
   );
 }
 
-function MainNavigator() {
+interface MainNavigatorProps {
+  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList> | null>;
+}
+
+function MainNavigator({ navigationRef }: MainNavigatorProps) {
   const { t } = useLanguageStore();
   return (
     <View style={{ flex: 1 }}>
-      <AppHeader />
+      <AppHeader navigationRef={navigationRef} />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -176,7 +180,7 @@ export default function App() {
       <ErrorBoundary>
         <NavigationContainer ref={navigationRef}>
           {token ? (
-            <MainNavigator />
+            <MainNavigator navigationRef={navigationRef} />
           ) : (
             <AuthStack.Navigator screenOptions={{ headerShown: false }}>
               <AuthStack.Screen name="Login" component={LoginScreen} />

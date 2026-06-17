@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Modal, RefreshControl, ScrollView, StyleSheet, Text, TextStyle, TouchableOpacity, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../App';
 import {
@@ -90,6 +90,7 @@ export function HomeScreen({ navigation }: Props) {
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [breakdown, setBreakdown] = useState<BreakdownItem[]>([]);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (token && !user) {
@@ -142,6 +143,21 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [totalDone, totalAvailable]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const subjects = await execute(() => dailyApi.getTodayTasks());
+    if (subjects) setTodayTasks(subjects, getHcmDateString());
+    setRefreshing(false);
+  }, [execute, setTodayTasks]);
+
+  // Registered so the AppHeader logo can trigger the same refresh on press.
+  // onRefresh is stable (useCallback with stable deps), so this effect only
+  // runs once on mount/unmount — it never re-fires on every render.
+  useEffect(() => {
+    useCacheStore.getState().setRefreshTodayTasks(onRefresh);
+    return () => useCacheStore.getState().setRefreshTodayTasks(null);
+  }, [onRefresh]);
+
   if (!user) {
     return <LoadingOverlay fullScreen message={t('common.restoring')} />;
   }
@@ -157,7 +173,7 @@ export function HomeScreen({ navigation }: Props) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
 
         {/* ── SECTION 1: Greeting + stat pills ─────────────── */}
