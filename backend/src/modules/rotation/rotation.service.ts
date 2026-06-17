@@ -63,23 +63,36 @@ export class RotationService implements OnModuleInit {
       await this.prisma.dailyAssignment.deleteMany({ where: { date: today } });
     }
 
+    // Rotation reads (findMany + findUnique) and the rotation-cursor upsert run
+    // outside the transaction — on Supabase's pooler, a cold connection made
+    // these sequential per-(type, difficulty) round trips slow enough that
+    // wrapping all of them in one $transaction blew past Prisma's timeout
+    // (P2028). The transaction below now only does the actual inserts.
+    const picks: { taskId: number; type: string; difficulty: string }[] = [];
+    for (const type of types) {
+      for (const difficulty of DIFFICULTIES) {
+        const taskId = await this.pickNextTaskOutsideTx(type, difficulty);
+        if (taskId === null) {
+          this.logger.warn(
+            `No tasks found with type "${type}" and difficulty "${difficulty}" — skipping`,
+          );
+          continue;
+        }
+        picks.push({ taskId, type, difficulty });
+      }
+    }
+
     const created: string[] = [];
 
-    await this.prisma.$transaction(async (tx) => {
-      for (const type of types) {
-        for (const difficulty of DIFFICULTIES) {
-          const taskId = await this.pickNextTask(tx, type, difficulty);
-          if (taskId === null) {
-            this.logger.warn(
-              `No tasks found with type "${type}" and difficulty "${difficulty}" — skipping`,
-            );
-            continue;
-          }
+    await this.prisma.$transaction(
+      async (tx) => {
+        for (const { taskId, type, difficulty } of picks) {
           await tx.dailyAssignment.create({ data: { taskId, date: today } });
           created.push(`${type}:${difficulty}:${taskId}`);
         }
-      }
-    });
+      },
+      { timeout: 30000 },
+    );
 
     this.logger.log(
       `Created daily assignments for ${dateStr} (${created.join(', ')})`,
@@ -94,7 +107,7 @@ export class RotationService implements OnModuleInit {
   // Rotation rows are keyed by "type:difficulty" (e.g. "bubble_sort:easy"),
   // stored in TaskRotation.difficulty (still a plain unique String column —
   // no schema change, just a different string format for the key).
-  private async pickNextTask(
+  private async pickNextTaskInTx(
     tx: Prisma.TransactionClient,
     type: string,
     difficulty: string,
@@ -133,6 +146,55 @@ export class RotationService implements OnModuleInit {
     const taskId = order[cursor];
 
     await tx.taskRotation.upsert({
+      where: { difficulty: rotationKey },
+      create: { difficulty: rotationKey, taskOrder: order, cursor: cursor + 1 },
+      update: { taskOrder: order, cursor: cursor + 1 },
+    });
+
+    return taskId;
+  }
+
+  // Same rotation logic as pickNextTaskInTx, but reads/upserts via the plain
+  // PrismaService client instead of a $transaction's tx client — see the
+  // comment above the picks loop in ensureTodayAssignments for why.
+  private async pickNextTaskOutsideTx(
+    type: string,
+    difficulty: string,
+  ): Promise<number | null> {
+    const tasks = await this.prisma.task.findMany({
+      where: { type, difficulty },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    });
+    if (tasks.length === 0) return null;
+
+    const taskIds = tasks.map((t) => t.id);
+    const rotationKey = `${type}:${difficulty}`;
+    const rotation = await this.prisma.taskRotation.findUnique({
+      where: { difficulty: rotationKey },
+    });
+    const storedOrder = rotation?.taskOrder as unknown as number[] | undefined;
+    const storedCursor = rotation?.cursor ?? 0;
+
+    let order: number[];
+    let cursor: number;
+    if (
+      storedOrder &&
+      Array.isArray(storedOrder) &&
+      storedOrder.length > 0 &&
+      storedCursor < storedOrder.length &&
+      sameTaskSet(storedOrder, taskIds)
+    ) {
+      order = storedOrder;
+      cursor = storedCursor;
+    } else {
+      order = shuffle(taskIds);
+      cursor = 0;
+    }
+
+    const taskId = order[cursor];
+
+    await this.prisma.taskRotation.upsert({
       where: { difficulty: rotationKey },
       create: { difficulty: rotationKey, taskOrder: order, cursor: cursor + 1 },
       update: { taskOrder: order, cursor: cursor + 1 },

@@ -611,20 +611,44 @@ for "today" — see the callout in Section 7.1.
   difficulties — currently 5 × 3 = 15, *not* the 2-types-per-day schedule
   `AutoAssignService` uses). If today already has `>= expectedCount` rows, no-op. If a
   nonzero-but-incomplete count exists, wipes all of today's rows and regenerates from
-  scratch. Otherwise, inside a single `$transaction`, calls `pickNextTask(tx, type,
-  difficulty)` for every `(type, difficulty)` pair and inserts a `DailyAssignment` for
-  each non-null result (a pair with zero matching tasks is skipped with a `logger.warn`,
-  not an error).
-- `pickNextTask(tx, type, difficulty)`: implements a true **no-repeat-until-exhausted**
-  round robin, persisted in the `TaskRotation` table (rows keyed by the composite string
-  `"<type>:<difficulty>"`, stored in the `difficulty` column despite the misleading
-  column name — a deliberate reuse of an existing unique string column rather than a
-  schema change). Loads the eligible task-id pool for `(type, difficulty)`; if a stored
-  shuffle order exists, still has unused entries (`cursor < length`), *and* exactly
-  matches the current eligible pool (`sameTaskSet`, order-independent), reuses it and
-  advances the cursor; otherwise reshuffles (Fisher–Yates, the local `shuffle()` helper)
-  and restarts the cursor at 0 — this is what makes it self-correcting if tasks are
-  added/removed for that `(type, difficulty)` between runs.
+  scratch. The actual generation is now split into two phases, to fix a production
+  crash (Prisma `P2028`, "transaction timeout exceeded (5000ms)") that happened when
+  every `(type, difficulty)`'s sequential `findMany`/`findUnique`/`upsert` rotation
+  reads were slow on a cold Supabase pooler connection while sitting inside one
+  `$transaction`:
+  1. **Before** any transaction: loops every `(type, difficulty)` pair and calls
+     `pickNextTaskOutsideTx(type, difficulty)` (using `this.prisma` directly, no tx
+     client) to read/advance that pair's rotation and get back a `taskId` (or `null`,
+     logged with `logger.warn` and skipped if no tasks exist for that pair yet).
+     Results are collected into an in-memory `picks` array of
+     `{ taskId, type, difficulty }`.
+  2. **Inside** `this.prisma.$transaction(..., { timeout: 30000 })`: loops the
+     pre-collected `picks` and only calls `tx.dailyAssignment.create(...)` for each —
+     the transaction body now contains nothing but inserts, and its timeout was raised
+     from Prisma's 5s default to 30s as a second layer of defense.
+- `pickNextTaskInTx(tx, type, difficulty)`: the original rotation-pick implementation,
+  kept for reference/parity but **no longer called** by `ensureTodayAssignments` (its
+  reads now go through `pickNextTaskOutsideTx` instead, see above). Implements a true
+  **no-repeat-until-exhausted** round robin, persisted in the `TaskRotation` table (rows
+  keyed by the composite string `"<type>:<difficulty>"`, stored in the `difficulty`
+  column despite the misleading column name — a deliberate reuse of an existing unique
+  string column rather than a schema change). Loads the eligible task-id pool for
+  `(type, difficulty)`; if a stored shuffle order exists, still has unused entries
+  (`cursor < length`), *and* exactly matches the current eligible pool (`sameTaskSet`,
+  order-independent), reuses it and advances the cursor; otherwise reshuffles
+  (Fisher–Yates, the local `shuffle()` helper) and restarts the cursor at 0 — this is
+  what makes it self-correcting if tasks are added/removed for that `(type,
+  difficulty)` between runs.
+- `pickNextTaskOutsideTx(type, difficulty)`: identical rotation logic to
+  `pickNextTaskInTx`, but reads/upserts via the plain `PrismaService` client (`
+  this.prisma`) instead of a transaction's `tx` client, so these round trips run outside
+  — and don't count against the timeout of — the `$transaction` in
+  `ensureTodayAssignments`. This is the one actually called now. Because its read and
+  upsert for a given `(type, difficulty)` pair are no longer wrapped in the same
+  transaction as the other pairs' picks (or as the final inserts), two overlapping calls
+  to `ensureTodayAssignments` (e.g. a slow cron run overlapping `onModuleInit()`) could
+  in principle race on the same `TaskRotation` row — an accepted trade-off for fixing the
+  timeout, not something this method guards against.
 **Connects to:** `PrismaService` (`DailyAssignment`, `Task`, `TaskRotation`),
 `ChallengeRegistryService` (only `listTypes()`), `getHcmToday`. **Does not** import or
 coordinate with `AutoAssignService` in any way, despite both writing to the same
