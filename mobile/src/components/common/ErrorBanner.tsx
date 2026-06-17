@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLanguageStore } from '../../store/languageStore';
 
 interface Props {
   message: string;
@@ -8,18 +9,19 @@ interface Props {
 }
 
 export function ErrorBanner({ message, onRetry, onDismiss }: Props) {
+  const { t } = useLanguageStore();
   return (
     <View style={styles.container}>
       <Text style={styles.message}>{message}</Text>
       <View style={styles.actions}>
         {onRetry ? (
           <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>{t('common.retry')}</Text>
           </TouchableOpacity>
         ) : null}
         {onDismiss ? (
           <TouchableOpacity style={styles.dismissBtn} onPress={onDismiss}>
-            <Text style={styles.dismissText}>Dismiss</Text>
+            <Text style={styles.dismissText}>{t('common.dismiss')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>

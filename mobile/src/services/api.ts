@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 // ---------------------------------------------------------------------------
@@ -15,7 +16,7 @@ export const api: AxiosInstance = axios.create({
 
 // Attach stored token to every request
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('auth_token');
+  const token = await getStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -38,19 +39,35 @@ api.interceptors.response.use(
 );
 
 // ---------------------------------------------------------------------------
-// Token persistence (SecureStore)
+// Token persistence (SecureStore on native; expo-secure-store has no web
+// implementation — its web module is a stub `{}`, so every call throws
+// "ExpoSecureStore.default.getValueWithKeyAsync is not a function". Fall
+// back to localStorage on web.)
 // ---------------------------------------------------------------------------
 
+const TOKEN_KEY = 'auth_token';
+
 export async function persistToken(token: string): Promise<void> {
-  await SecureStore.setItemAsync('auth_token', token);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(TOKEN_KEY, token);
+    return;
+  }
+  await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
 export async function clearToken(): Promise<void> {
-  await SecureStore.deleteItemAsync('auth_token');
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
 export async function getStoredToken(): Promise<string | null> {
-  return SecureStore.getItemAsync('auth_token');
+  if (Platform.OS === 'web') {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+  return SecureStore.getItemAsync(TOKEN_KEY);
 }
 
 // ---------------------------------------------------------------------------
@@ -63,6 +80,7 @@ export interface AuthUser {
   name: string;
   role: 'user' | 'admin';
   classId: number | null;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -80,13 +98,31 @@ export interface DailyTask {
   id: number;
   type: string;
   title: string;
-  description: string | null;
   config: Record<string, unknown>;
+  difficulty: string;
+  attemptsToday: number;
+}
+
+export interface DailySubject {
+  type: string;
+  label: string;
+  tasks: DailyTask[];
+}
+
+export interface AttemptHistoryEntry {
+  attemptNumber: number;
+  isCorrect: boolean;
+  points: number;
+  isBest: boolean;
 }
 
 export interface SubmissionResult {
   isCorrect: boolean;
   points: number;
+  attemptsUsed: number;
+  maxAttempts: number;
+  scored?: boolean;
+  attemptHistory: AttemptHistoryEntry[];
 }
 
 export interface LeaderboardEntry {
@@ -96,6 +132,7 @@ export interface LeaderboardEntry {
   className: string;
   totalPoints: number;
   isCurrentUser: boolean;
+  avatarUrl?: string | null;
 }
 
 export interface LeaderboardResponse {
@@ -110,10 +147,16 @@ export interface UserProfile extends AuthUser {
   badges: { key: string; name: string; description: string; iconUrl: string | null }[];
 }
 
+export interface DailyHistoryEntry {
+  date: string;
+  completed: boolean;
+}
+
 export interface StreakData {
   current: number;
   longest: number;
   lastUpdated: string | null;
+  daily_history?: DailyHistoryEntry[];
 }
 
 export interface BadgeItem {
@@ -122,6 +165,19 @@ export interface BadgeItem {
   description: string;
   iconUrl: string | null;
   awardedAt: string;
+}
+
+export interface BreakdownItem {
+  taskId: number;
+  title: string;
+  type: string;
+  points: number;
+  isCorrect: boolean;
+}
+
+export interface TodaySummary {
+  pointsToday: number;
+  breakdown: BreakdownItem[];
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +207,7 @@ export const usersApi = {
 };
 
 export const dailyApi = {
-  getTodayTasks: () => api.get<DailyTask[]>('/daily').then((r) => r.data),
+  getTodayTasks: () => api.get<DailySubject[]>('/daily').then((r) => r.data),
 };
 
 export const submissionsApi = {
@@ -159,6 +215,8 @@ export const submissionsApi = {
     api
       .post<SubmissionResult>('/submissions', { taskId, actions })
       .then((r) => r.data),
+  todaySummary: () =>
+    api.get<TodaySummary>('/submissions/today-summary').then((r) => r.data),
 };
 
 export const streakApi = {

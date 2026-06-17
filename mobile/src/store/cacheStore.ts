@@ -1,29 +1,71 @@
 import { create } from 'zustand';
-import type { LeaderboardResponse } from '../services/api';
-
-interface DailyTask {
-  id: number;
-  type: string;
-  title: string;
-  description: string | null;
-  config: Record<string, unknown>;
-}
+import type { DailySubject, DailyHistoryEntry, LeaderboardResponse, BadgeItem } from '../services/api';
 
 interface CacheState {
-  todayTasks: DailyTask[];
+  todayTasks: DailySubject[];
   leaderboardData: LeaderboardResponse | null;
   lastFetchedDate: string | null; // ISO date string
-  setTodayTasks: (tasks: DailyTask[], date: string) => void;
+  pointsToday: number | null;
+  streakCurrent: number | null;
+  dailyHistory: DailyHistoryEntry[] | null;
+  latestBadge: BadgeItem | null;
+  allTasksCompletedToday: boolean;
+  setTodayTasks: (tasks: DailySubject[], date: string) => void;
   setLeaderboardData: (data: LeaderboardResponse) => void;
+  setPointsToday: (v: number) => void;
+  setStreakCurrent: (v: number) => void;
+  setDailyHistory: (history: DailyHistoryEntry[]) => void;
+  setLatestBadge: (badge: BadgeItem | null) => void;
+  setAllTasksCompletedToday: (v: boolean) => void;
+  addPoints: (points: number) => void;
+  incrementAttempts: (taskId: number) => void;
   clearCache: () => void;
+  reset: () => void;
 }
 
 export const useCacheStore = create<CacheState>((set) => ({
   todayTasks: [],
   leaderboardData: null,
   lastFetchedDate: null,
+  pointsToday: null,
+  streakCurrent: null,
+  dailyHistory: null,
+  latestBadge: null,
+  allTasksCompletedToday: false,
 
   setTodayTasks: (todayTasks, lastFetchedDate) => set({ todayTasks, lastFetchedDate }),
   setLeaderboardData: (leaderboardData) => set({ leaderboardData }),
-  clearCache: () => set({ todayTasks: [], leaderboardData: null, lastFetchedDate: null }),
+  setPointsToday: (pointsToday) => set({ pointsToday }),
+  setStreakCurrent: (streakCurrent) => set({ streakCurrent }),
+  setDailyHistory: (dailyHistory) => set({ dailyHistory }),
+  setLatestBadge: (latestBadge) => set({ latestBadge }),
+  setAllTasksCompletedToday: (allTasksCompletedToday) => set({ allTasksCompletedToday }),
+  addPoints: (points) => set((state) => ({ pointsToday: (state.pointsToday ?? 0) + points })),
+  incrementAttempts: (taskId) =>
+    set((state) => ({
+      todayTasks: state.todayTasks.map((subject) => ({
+        ...subject,
+        tasks: subject.tasks.map((t) =>
+          t.id === taskId ? { ...t, attemptsToday: t.attemptsToday + 1 } : t,
+        ),
+      })),
+    })),
+  clearCache: () => set({
+    todayTasks: [],
+    leaderboardData: null,
+    lastFetchedDate: null,
+    pointsToday: null,
+    streakCurrent: null,
+    dailyHistory: null,
+    allTasksCompletedToday: false,
+  }),
+  reset: () => set({
+    todayTasks: [],
+    leaderboardData: null,
+    lastFetchedDate: null,
+    pointsToday: null,
+    streakCurrent: null,
+    dailyHistory: null,
+    allTasksCompletedToday: false,
+  }),
 }));

@@ -8,15 +8,16 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { AuthStackParamList } from '../../../App';
 import { authApi, classesApi, ClassItem } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useLanguageStore } from '../../store/languageStore';
 import { useApi } from '../../hooks/useApi';
 import { LoadingOverlay } from '../../components/common/LoadingOverlay';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { ScreenWrapper } from '../../components/common/ScreenWrapper';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
@@ -26,6 +27,7 @@ export function RegisterScreen({ navigation }: Props) {
   const [classes, setClasses] = useState<ClassItem[]>([]);
 
   const setAuth = useAuthStore((s) => s.setAuth);
+  const { t } = useLanguageStore();
   const { loading, error, execute, clearError } = useApi<Awaited<ReturnType<typeof authApi.register>>>();
 
   useEffect(() => {
@@ -36,20 +38,23 @@ export function RegisterScreen({ navigation }: Props) {
     const result = await execute(() =>
       authApi.register(email.trim(), password, name.trim(), classId ?? undefined),
     );
-    if (result) setAuth(result.token, result.user);
+    if (result) {
+      setAuth(result.token, result.user);
+      useAuthStore.getState().setIsNewUser(true);
+    }
   }
 
   return (
-    <ScreenWrapper padded={false}>
+    <ScreenWrapper padded={false} showBack backFallbackRoute="Login">
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.title}>{t('auth.register.title')}</Text>
 
         {error ? <ErrorBanner message={error} onDismiss={clearError} /> : null}
 
-        <TextInput style={styles.input} placeholder="Full name" value={name} onChangeText={setName} editable={!loading} />
+        <TextInput style={styles.input} placeholder={t('auth.register.name')} value={name} onChangeText={setName} editable={!loading} />
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t('auth.login.email')}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -58,7 +63,7 @@ export function RegisterScreen({ navigation }: Props) {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password (8+ characters)"
+          placeholder={t('auth.register.passwordHint')}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -67,7 +72,7 @@ export function RegisterScreen({ navigation }: Props) {
 
         {classes.length > 0 ? (
           <View>
-            <Text style={styles.label}>Select your class</Text>
+            <Text style={styles.label}>{t('auth.register.class')}</Text>
             {classes.map((c) => (
               <TouchableOpacity
                 key={c.id}
@@ -84,15 +89,15 @@ export function RegisterScreen({ navigation }: Props) {
         ) : null}
 
         {loading ? (
-          <LoadingOverlay message="Creating account…" />
+          <LoadingOverlay message={t('auth.register.loading')} />
         ) : (
           <TouchableOpacity style={styles.btn} onPress={handleRegister}>
-            <Text style={styles.btnText}>Register</Text>
+            <Text style={styles.btnText}>{t('auth.register.button')}</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.link}>Already have an account? Log in</Text>
+          <Text style={styles.link}>{t('auth.register.haveAccount')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </ScreenWrapper>

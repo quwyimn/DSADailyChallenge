@@ -7,20 +7,22 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../App';
+import { AuthStackParamList } from '../../../App';
 import { authApi } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { useLanguageStore } from '../../store/languageStore';
 import { useApi } from '../../hooks/useApi';
 import { LoadingOverlay } from '../../components/common/LoadingOverlay';
 import { ErrorBanner } from '../../components/common/ErrorBanner';
 import { ScreenWrapper } from '../../components/common/ScreenWrapper';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const setAuth = useAuthStore((s) => s.setAuth);
+  const { t } = useLanguageStore();
   const { loading, error, execute, clearError } = useApi<Awaited<ReturnType<typeof authApi.login>>>();
 
   async function handleLogin() {
@@ -37,7 +39,7 @@ export function LoginScreen({ navigation }: Props) {
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t('auth.login.email')}
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -46,7 +48,7 @@ export function LoginScreen({ navigation }: Props) {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={t('auth.login.password')}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -54,15 +56,15 @@ export function LoginScreen({ navigation }: Props) {
         />
 
         {loading ? (
-          <LoadingOverlay message="Logging in…" />
+          <LoadingOverlay message={t('auth.login.loading')} />
         ) : (
           <TouchableOpacity style={styles.btn} onPress={handleLogin}>
-            <Text style={styles.btnText}>Log In</Text>
+            <Text style={styles.btnText}>{t('auth.login.button')}</Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.link}>No account? Register</Text>
+          <Text style={styles.link}>{t('auth.login.noAccount')}</Text>
         </TouchableOpacity>
       </View>
     </ScreenWrapper>

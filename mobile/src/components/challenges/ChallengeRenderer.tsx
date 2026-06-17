@@ -1,6 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BubbleSortView } from './BubbleSortView';
+import { LinkedListView } from './LinkedListView';
+import { BinarySearchView } from './BinarySearchView';
+import { StackOpsView } from './StackOpsView';
+import { QueueOpsView } from './QueueOpsView';
 
 interface ChallengeRendererProps {
   type: string;
@@ -10,6 +14,10 @@ interface ChallengeRendererProps {
 
 const RENDERERS: Record<string, React.ComponentType<ChallengeRendererProps>> = {
   bubble_sort: BubbleSortView,
+  linked_list: LinkedListView,
+  binary_search: BinarySearchView,
+  stack_ops: StackOpsView,
+  queue_ops: QueueOpsView,
 };
 
 export function ChallengeRenderer(props: ChallengeRendererProps) {

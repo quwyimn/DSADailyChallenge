@@ -10,6 +10,7 @@ interface SessionState {
   appendAction: (action: unknown) => void;
   setSubmissionResult: (result: SubmissionResult) => void;
   clearSession: () => void;
+  reset: () => void;
 }
 
 export const useSessionStore = create<SessionState>((set) => ({
@@ -27,5 +28,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   setSubmissionResult: (submissionResult) => set({ submissionResult }),
 
   clearSession: () =>
+    set({ activeTaskId: null, activeTaskType: null, capturedActions: [], submissionResult: null }),
+  reset: () =>
     set({ activeTaskId: null, activeTaskType: null, capturedActions: [], submissionResult: null }),
 }));
