@@ -19,7 +19,7 @@ export class RotationService implements OnModuleInit {
   // Self-healing: if the app was down at 00:00 GMT+7, today's assignments
   // get created as soon as it comes back up.
   async onModuleInit() {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     await this.ensureTodayAssignments();
   }
 
