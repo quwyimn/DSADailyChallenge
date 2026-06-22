@@ -38,6 +38,14 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+export function extractErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const msg = (err.response?.data as { message?: string } | undefined)?.message;
+    if (typeof msg === 'string') return msg;
+  }
+  return '';
+}
+
 // ---------------------------------------------------------------------------
 // Shared types
 // ---------------------------------------------------------------------------

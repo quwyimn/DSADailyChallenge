@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { tasksApi, TASK_TYPES } from '../services/api';
+import { tasksApi, TASK_TYPES, extractErrorMessage } from '../services/api';
 import type { Task } from '../services/api';
+import { showToast } from '../services/toast';
 
 const EMPTY_FORM = { type: TASK_TYPES[0] as string, title: '', description: '', configText: '' };
 
@@ -72,25 +73,25 @@ function TaskForm({ values, onChange, onSubmit, submitLabel, busy, configError, 
       <div className="mb-3.5 flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-col sm:flex-1">
           <label className="mb-1.5 text-xs font-semibold text-slate-700">Type</label>
-          <select className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" value={values.type} onChange={set('type')}>
+          <select className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" value={values.type} onChange={set('type')}>
             {TASK_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div className="flex flex-col sm:flex-[2]">
           <label className="mb-1.5 text-xs font-semibold text-slate-700">Title</label>
-          <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="Task title" value={values.title} onChange={set('title')} required />
+          <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" placeholder="Task title" value={values.title} onChange={set('title')} required />
         </div>
       </div>
 
       <div className="mb-3.5 flex flex-col">
         <label className="mb-1.5 text-xs font-semibold text-slate-700">Description (optional)</label>
-        <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="Short description" value={values.description} onChange={set('description')} />
+        <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" placeholder="Short description" value={values.description} onChange={set('description')} />
       </div>
 
       <div className="mb-[18px] flex flex-col">
         <label className="mb-1.5 text-xs font-semibold text-slate-700">Config (JSON)</label>
         <textarea
-          className="h-[120px] w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 font-mono text-xs text-slate-900"
+          className="h-[120px] w-full resize-y rounded-lg border border-slate-300 px-3 py-2.5 font-mono text-base text-slate-900"
           placeholder={'{\n  "array": [5, 3, 1, 4, 2],\n  "stepsToPredict": 5\n}'}
           value={values.configText}
           onChange={(e) => onConfigChange(e.target.value)}
@@ -146,8 +147,10 @@ export function TasksPage() {
       setTasks((prev) => [created, ...prev]);
       setCreateValues(EMPTY_FORM);
       setShowCreate(false);
-    } catch {
-      setError('Failed to create task.');
+      showToast('Đã thêm thành công', 'success');
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Thêm thất bại: ${msg}` : 'Thêm thất bại', 'error');
     } finally {
       setCreating(false);
     }
@@ -192,8 +195,10 @@ export function TasksPage() {
     try {
       await tasksApi.remove(id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
-    } catch {
-      setError('Failed to delete task.');
+      showToast('Đã xóa thành công', 'success');
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Xóa thất bại: ${msg}` : 'Xóa thất bại', 'error');
     }
   }
 

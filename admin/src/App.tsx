@@ -5,6 +5,7 @@ import { ClassesPage } from './pages/Classes';
 import { AssignmentsPage } from './pages/Assignments';
 import { StatsPage } from './pages/Stats';
 import { setAuthToken, setUnauthorizedHandler } from './services/api';
+import { ToastHost } from './components/Toast';
 
 type Page = 'tasks' | 'classes' | 'assignments' | 'stats';
 
@@ -141,6 +142,8 @@ function App() {
           {page === 'stats' && <StatsPage />}
         </main>
       </div>
+
+      <ToastHost />
     </div>
   );
 }

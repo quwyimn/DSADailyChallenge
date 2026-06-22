@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { tasksApi, assignmentsApi } from '../services/api';
+import { tasksApi, assignmentsApi, extractErrorMessage } from '../services/api';
 import type { Task, Assignment } from '../services/api';
+import { showToast } from '../services/toast';
 
 function todayStr(): string {
   const d = new Date();
@@ -97,9 +98,10 @@ export function AssignmentsPage() {
       const updated = await assignmentsApi.listByDate(date);
       setAssignments(updated);
       setSelectedTaskId('');
+      showToast('Đã thêm thành công', 'success');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? 'Failed to assign task (may already be assigned).');
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Thêm thất bại: ${msg}` : 'Thêm thất bại', 'error');
     } finally {
       setAssigning(false);
     }
@@ -110,8 +112,10 @@ export function AssignmentsPage() {
     try {
       await assignmentsApi.remove(id);
       setAssignments((prev) => prev.filter((a) => a.id !== id));
-    } catch {
-      setError('Failed to remove assignment.');
+      showToast('Đã xóa thành công', 'success');
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Xóa thất bại: ${msg}` : 'Xóa thất bại', 'error');
     }
   }
 
@@ -127,7 +131,7 @@ export function AssignmentsPage() {
           <label className="mb-1 text-xs font-semibold text-slate-600">Date</label>
           <input
             type="date"
-            className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm sm:w-auto"
+            className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base sm:w-auto"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
@@ -137,7 +141,7 @@ export function AssignmentsPage() {
       {/* Assign form */}
       <form onSubmit={handleAssign} className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <select
-          className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm sm:min-w-[280px] sm:flex-1"
+          className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base sm:min-w-[280px] sm:flex-1"
           value={selectedTaskId}
           onChange={(e) => setSelectedTaskId(e.target.value ? Number(e.target.value) : '')}
           required

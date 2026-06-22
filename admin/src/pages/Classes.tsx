@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { classesApi } from '../services/api';
+import { classesApi, extractErrorMessage } from '../services/api';
 import type { ClassItem } from '../services/api';
+import { showToast } from '../services/toast';
 
 interface ModalProps {
   title: string;
@@ -64,8 +65,10 @@ export function ClassesPage() {
       setNewName('');
       setNewGrade('');
       setShowCreate(false);
-    } catch {
-      setError('Failed to create class.');
+      showToast('Đã thêm thành công', 'success');
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Thêm thất bại: ${msg}` : 'Thêm thất bại', 'error');
     } finally {
       setCreating(false);
     }
@@ -99,8 +102,10 @@ export function ClassesPage() {
     try {
       await classesApi.remove(id);
       setClasses((prev) => prev.filter((c) => c.id !== id));
-    } catch {
-      setError('Failed to delete class.');
+      showToast('Đã xóa thành công', 'success');
+    } catch (err) {
+      const msg = extractErrorMessage(err);
+      showToast(msg ? `Xóa thất bại: ${msg}` : 'Xóa thất bại', 'error');
     }
   }
 
@@ -191,11 +196,11 @@ export function ClassesPage() {
           <form onSubmit={handleCreate}>
             <div className="mb-3.5 flex flex-col">
               <label className="mb-1.5 text-xs font-semibold text-slate-700">Class Name</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="e.g. 12A1" value={newName} onChange={(e) => setNewName(e.target.value)} required autoFocus />
+              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" placeholder="e.g. 12A1" value={newName} onChange={(e) => setNewName(e.target.value)} required autoFocus />
             </div>
             <div className="mb-5 flex flex-col">
               <label className="mb-1.5 text-xs font-semibold text-slate-700">Grade</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" placeholder="e.g. Grade 12" value={newGrade} onChange={(e) => setNewGrade(e.target.value)} required />
+              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" placeholder="e.g. Grade 12" value={newGrade} onChange={(e) => setNewGrade(e.target.value)} required />
             </div>
             <button type="submit" className="min-h-11 w-full rounded-lg bg-[#4f87ff] px-[18px] py-2.5 text-[13px] font-semibold text-white disabled:opacity-70 sm:w-auto" disabled={creating}>
               {creating ? 'Creating…' : 'Create Class'}
@@ -210,11 +215,11 @@ export function ClassesPage() {
           <form onSubmit={handleUpdate}>
             <div className="mb-3.5 flex flex-col">
               <label className="mb-1.5 text-xs font-semibold text-slate-700">Class Name</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" value={editName} onChange={(e) => setEditName(e.target.value)} required autoFocus />
+              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" value={editName} onChange={(e) => setEditName(e.target.value)} required autoFocus />
             </div>
             <div className="mb-5 flex flex-col">
               <label className="mb-1.5 text-xs font-semibold text-slate-700">Grade</label>
-              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900" value={editGrade} onChange={(e) => setEditGrade(e.target.value)} required />
+              <input className="min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base text-slate-900" value={editGrade} onChange={(e) => setEditGrade(e.target.value)} required />
             </div>
             <button type="submit" className="min-h-11 w-full rounded-lg bg-[#4f87ff] px-[18px] py-2.5 text-[13px] font-semibold text-white disabled:opacity-70 sm:w-auto" disabled={updating}>
               {updating ? 'Saving…' : 'Save Changes'}
