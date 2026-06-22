@@ -39,9 +39,8 @@ export class DailyService {
   ) {}
 
   async getTodayTasks(userId: number): Promise<DailySubjectView[]> {
-    await this.autoAssign.ensureTodayAssigned(new Date());
-
     const today = getHcmToday();
+    await this.autoAssign.ensureTodayAssigned(today);
 
     const assignments = await this.prisma.dailyAssignment.findMany({
       where: { date: today },

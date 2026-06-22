@@ -13,7 +13,6 @@ import { StreakModule } from './modules/streak/streak.module';
 import { BadgeModule } from './modules/badges/badge.module';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { StatsModule } from './modules/stats/stats.module';
-import { RotationModule } from './modules/rotation/rotation.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { HealthModule } from './health/health.module';
 
@@ -48,7 +47,6 @@ const REQUIRED_VARS = ['DATABASE_URL', 'JWT_SECRET'];
     BadgeModule,
     LeaderboardModule,
     StatsModule,
-    RotationModule,
   ],
 })
 export class AppModule {}

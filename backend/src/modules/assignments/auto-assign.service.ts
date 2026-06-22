@@ -17,53 +17,51 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'];
 export class AutoAssignService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Idempotently fills in today's 2 scheduled topics (one task per
+   * difficulty each = up to 6 rows) in `daily_assignments`, without ever
+   * deleting or duplicating existing rows.
+   *
+   * `date` must already be a GMT+7 calendar-day marker — UTC midnight whose
+   * Y-M-D equals the target HCM date (see `getHcmToday()`). Callers must not
+   * pass a raw "now" timestamp; this function does no timezone shifting of
+   * its own, so its weekday/date math stays consistent with every other
+   * caller of `daily_assignments` (DailyService, AssignmentsService).
+   *
+   * Only ever ADDS rows for (type, difficulty) slots that are completely
+   * empty. A slot already filled by ANY task — whether previously
+   * auto-assigned or manually assigned by an admin — is left untouched, and
+   * non-scheduled-type assignments (e.g. an admin's 3rd-topic override) are
+   * never removed. Manual admin assignments always take priority.
+   */
   async ensureTodayAssigned(date: Date): Promise<void> {
-    const hcmDate = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    const dow = hcmDate.getUTCDay();
+    const dow = date.getUTCDay();
     const types = WEEKLY_SCHEDULE[dow];
     if (!types) return;
 
-    const dateStr = hcmDate.toISOString().slice(0, 10);
+    const dateStr = date.toISOString().slice(0, 10);
     const seed = dateStr.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
 
-    // Check if we already have exactly the right assignments for today
     const existing = await this.prisma.dailyAssignment.findMany({
       where: { date },
-      include: { task: { select: { type: true } } },
+      include: { task: { select: { type: true, difficulty: true } } },
     });
+    const filledSlots = new Set(existing.map((a) => `${a.task.type}:${a.task.difficulty}`));
 
-    const existingTypes = existing.map((a) => a.task.type);
-    const hasAllCorrect =
-      types.every((t) => existingTypes.includes(t)) &&
-      existing.length === 6 &&
-      existing.every((a) => types.includes(a.task.type));
-
-    if (hasAllCorrect) return;
-
-    // Remove any assignments that don't belong to today's schedule
-    const wrongIds = existing
-      .filter((a) => !types.includes(a.task.type))
-      .map((a) => a.id);
-    if (wrongIds.length > 0) {
-      await this.prisma.dailyAssignment.deleteMany({ where: { id: { in: wrongIds } } });
-    }
-
-    // Pick one task per type x difficulty and insert missing ones
-    const existingTaskIds = new Set(existing.filter((a) => types.includes(a.task.type)).map((a) => a.taskId));
     const toCreate: { taskId: number; date: Date }[] = [];
-
     for (const type of types) {
       for (const difficulty of DIFFICULTIES) {
+        if (filledSlots.has(`${type}:${difficulty}`)) continue;
+
         const tasks = await this.prisma.task.findMany({
           where: { type, difficulty },
           orderBy: { id: 'asc' },
           select: { id: true },
         });
         if (tasks.length === 0) continue;
+
         const picked = tasks[seed % tasks.length];
-        if (!existingTaskIds.has(picked.id)) {
-          toCreate.push({ taskId: picked.id, date });
-        }
+        toCreate.push({ taskId: picked.id, date });
       }
     }
 
